@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 
-ATTR_RE = re.compile(r"""(?P<attr>\b(?:src|href)\b)\s*=\s*(?P<q>["'])(?P<val>.*?)(?P=q)""", re.IGNORECASE)
+ATTR_RE = re.compile(r"""(?P<attr>\b(?:src|href|poster)\b)\s*=\s*(?P<q>["'])(?P<val>.*?)(?P=q)""", re.IGNORECASE)
 DATA_TRACKS_RE = re.compile(r"""(?P<attr>\bdata-tracks\b)\s*=\s*(?P<q>["'])(?P<val>.*?)(?P=q)""", re.IGNORECASE)
 LOCAL_SKIP_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//|#)", re.IGNORECASE)
 PAIR_RE = re.compile(r"^- ([^ ]+) <-> .*\((https?://[^)]+)\)", re.MULTILINE)
