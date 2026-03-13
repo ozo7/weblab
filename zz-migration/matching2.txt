@@ -5,8 +5,8 @@ Processing rule: if the same numeric prefix appears on one line in both unmatche
 Non-numeric tags such as `xx-` are left unresolved.
 
 Matching pairs
-- hh-alle-termine <-> Alle Termine (http://localhost:8081/alle-termine.html)
 - hh-home <-> Home (http://localhost:8081/)
+- hh-alle-termine <-> Alle Termine (http://localhost:8081/alle-termine.html)
 - hh-kontakt <-> Kontakt (http://localhost:8081/kontakt.html)
 - hh-schungit <-> Schungit (http://localhost:8081/schungit.html)
 - hh-schungit-erfahrungsberichte <-> Erfahrungsberichte (http://localhost:8081/schungit/erfahrungsberichte.html)

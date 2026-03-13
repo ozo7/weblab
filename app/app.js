@@ -44,7 +44,7 @@ function mountViewport() {
   runtime.activeViewport = createViewport1080({
     host,
     navigation: sharedRuntime.getNavigation(),
-    navTree: sharedRuntime.getNavTree(),
+    siteMap: sharedRuntime.getSiteMap(),
     homeArticleId: sharedRuntime.getDefaultArticleId()
   });
   runtime.unbindDelegation = sharedRuntime.bindLinkDelegation(runtime.activeViewport.articlePane);

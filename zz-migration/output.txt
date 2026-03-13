@@ -10,8 +10,8 @@ Navigation OK: 30
 Navigation NO: 0
 
 Navigation Status:
-OK hh-alle-termine
 OK hh-home
+OK hh-alle-termine
 OK hh-kontakt
 OK hh-schungit
 OK hh-schungit-erfahrungsberichte
@@ -42,8 +42,8 @@ OK hh-steuerungen
 OK hh-steuerungen-2
 
 Folder Found IDs:
-- hh-alle-termine
 - hh-home
+- hh-alle-termine
 - hh-kontakt
 - hh-schungit
 - hh-schungit-erfahrungsberichte
@@ -79,6 +79,6 @@ Folder Missing IDs:
 website.json: generated at /home/ozo/ais/weblab/zz-export/website.json
 article fragments generated: 30
 target articles dir: /home/ozo/ais/weblab/zz-export/articles
-copied: /home/ozo/ais/webwriter/zz-exports/hh-alle-termine/export.js -> /home/ozo/ais/weblab/zz-export/export.js
-copied: /home/ozo/ais/webwriter/zz-exports/hh-alle-termine/export.css -> /home/ozo/ais/weblab/zz-export/export.css
+copied: /home/ozo/ais/webwriter/zz-exports/hh-home/export.js -> /home/ozo/ais/weblab/zz-export/export.js
+copied: /home/ozo/ais/webwriter/zz-exports/hh-home/export.css -> /home/ozo/ais/weblab/zz-export/export.css
 copied: /home/ozo/ais/webwriter/zz-exports/aa-tables -> /home/ozo/ais/weblab/zz-export/aa-tables

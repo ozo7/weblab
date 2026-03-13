@@ -13,10 +13,13 @@
       <div id="labFrame" class="lab-frame">
         <div id="labViewportHost" class="lab-viewport-host"></div>
       </div>
+      <section id="jsObjectsWorkspace" class="lab-objects-workspace" hidden aria-label="JS objects inspector"></section>
     </section>
     <aside class="lab-controls" aria-label="Viewport controls">
       <h1>Viewport Lab</h1>
       <div id="viewportButtons" class="lab-viewport-buttons"></div>
+      <button id="jsObjectsToggle" class="lab-objects-toggle" type="button" aria-expanded="false">JS objects</button>
+      <div id="jsObjectsList" class="lab-objects-list" hidden></div>
       <p class="lab-hint">All viewports wired through shared core runtime.</p>
     </aside>
   </div>

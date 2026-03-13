@@ -249,10 +249,56 @@ def resolve_article_id_from_href(href: str, by_url: dict[str, str], by_path: dic
     return None
 
 
+def resolve_article_id_from_canonical_href(href: str) -> str | None:
+    base, _ = split_suffix(href.strip())
+    match = re.match(r"^/zz-export/articles/([A-Za-z0-9._-]+)\.htm$", base, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return None
+
+
+def is_article_path_candidate(path: str) -> bool:
+    base = split_suffix(path.strip())[0]
+    if not base:
+        return False
+    if base == "/":
+        return True
+    low = base.lower()
+    if low.startswith("/zz-export/aa-tables/") or low.startswith("/zz-export/aa-images/"):
+        return False
+    if low.startswith("/zz-export/articles/"):
+        return True
+    if low.startswith("/articles/") or low.startswith("articles/"):
+        return True
+    return low.endswith(".htm") or low.endswith(".html")
+
+
+def is_internal_navigation_candidate(href: str, has_internal_nav_ref: bool) -> bool:
+    if has_internal_nav_ref:
+        return True
+    value = href.strip()
+    if not value:
+        return False
+    if value.startswith("#"):
+        return False
+    parsed = urlparse(value)
+    if parsed.scheme in ("http", "https"):
+        if parsed.hostname not in ("127.0.0.1", "localhost"):
+            return False
+        return is_article_path_candidate(parsed.path or "/")
+    if parsed.scheme:
+        return False
+    return is_article_path_candidate(value)
+
+
 def rewrite_navigation_links(
     html: str,
+    source_article_id: str,
     by_url: dict[str, str],
     by_path: dict[str, str],
+    known_article_ids: set[str],
+    link_records: list[dict[str, str]],
+    broken_link_lines: list[str],
 ) -> tuple[str, int]:
     replacements = 0
 
@@ -260,19 +306,44 @@ def rewrite_navigation_links(
         nonlocal replacements
         tag = match.group(0)
         article_id: str | None = None
+        reason = "resolved"
+
+        href_match = HREF_IN_TAG_RE.search(tag)
+        href_value = href_match.group("val") if href_match else ""
 
         ref_match = INTERNAL_NAV_REF_RE.search(tag)
+        has_internal_nav_ref = ref_match is not None
         if ref_match:
             resolved = INTERNAL_RESOLVED_ID_RE.search(ref_match.group("val"))
             if resolved:
                 article_id = resolved.group("id")
+                reason = "internal-nav-ref"
 
         if not article_id:
-            href_match = HREF_IN_TAG_RE.search(tag)
-            if href_match:
-                article_id = resolve_article_id_from_href(href_match.group("val"), by_url, by_path)
+            article_id = resolve_article_id_from_href(href_value, by_url, by_path)
+            if article_id:
+                reason = "href-match"
 
-        if not article_id:
+        if not article_id and href_value:
+            article_id = resolve_article_id_from_canonical_href(href_value)
+            if article_id:
+                reason = "canonical-href"
+
+        is_internal_candidate = is_internal_navigation_candidate(href_value, has_internal_nav_ref)
+        if not article_id or article_id not in known_article_ids:
+            if is_internal_candidate:
+                broken_reason = "unresolved-internal-link"
+                if article_id and article_id not in known_article_ids:
+                    broken_reason = "missing-target-article"
+                broken_link_lines.append(f"{source_article_id}\t{href_value}\t{article_id or '-'}\t{broken_reason}")
+                link_records.append({
+                    "sourceArticleId": source_article_id,
+                    "hrefOriginal": href_value,
+                    "hrefNormalized": href_value,
+                    "targetArticleId": article_id or "",
+                    "status": "broken",
+                    "reason": broken_reason,
+                })
             return tag
 
         changed = False
@@ -290,6 +361,14 @@ def rewrite_navigation_links(
 
         if changed:
             replacements += 1
+        link_records.append({
+            "sourceArticleId": source_article_id,
+            "hrefOriginal": href_value,
+            "hrefNormalized": canonical_href,
+            "targetArticleId": article_id,
+            "status": "resolved",
+            "reason": reason,
+        })
         return updated
 
     return ANCHOR_TAG_RE.sub(repl, html), replacements
@@ -304,6 +383,9 @@ def main() -> int:
     matching_path = script_dir / "matching2.txt"
     error_log = script_dir / "error.log"
     not_found_log = script_dir / "2-not-found.txt"
+    broken_links_log = script_dir / "2-broken-links.txt"
+    website_path = repo_root / "zz-export" / "website.json"
+    internal_links_json = repo_root / "zz-export" / "internal-links.json"
 
     def fail(reason: str) -> int:
         error_log.write_text(reason.strip() + "\n", encoding="utf-8")
@@ -325,12 +407,15 @@ def main() -> int:
 
     pairs = extract_pairs(matching_path.read_text(encoding="utf-8"))
     by_url, by_path = build_localhost_article_maps(pairs)
+    known_article_ids = {article_id for article_id, _ in pairs}
 
     target_images_dir.mkdir(parents=True, exist_ok=True)
 
     touched_files = 0
     total_replacements = 0
     not_found: list[str] = []
+    broken_link_lines: list[str] = []
+    link_records: list[dict[str, str]] = []
     used_names: set[str] = set()
 
     for article_file in article_files:
@@ -349,7 +434,15 @@ def main() -> int:
             replacements += tracks_replacements
             updated, table_replacements = normalize_table_links(updated)
             replacements += table_replacements
-            updated, nav_replacements = rewrite_navigation_links(updated, by_url, by_path)
+            updated, nav_replacements = rewrite_navigation_links(
+                updated,
+                article_id,
+                by_url,
+                by_path,
+                known_article_ids,
+                link_records,
+                broken_link_lines,
+            )
             replacements += nav_replacements
             if replacements > 0:
                 article_file.write_text(updated, encoding="utf-8")
@@ -362,12 +455,68 @@ def main() -> int:
         "\n".join(not_found) + ("\n" if not_found else ""),
         encoding="utf-8",
     )
+    broken_links_log.write_text(
+        "\n".join(broken_link_lines) + ("\n" if broken_link_lines else ""),
+        encoding="utf-8",
+    )
+
+    landing_article_id = ""
+    if website_path.is_file():
+        try:
+            website = json.loads(website_path.read_text(encoding="utf-8"))
+            meta = website.get("meta") if isinstance(website, dict) else {}
+            if isinstance(meta, dict):
+                value = meta.get("landingArticleId")
+                if isinstance(value, str):
+                    landing_article_id = value
+        except Exception:  # noqa: BLE001
+            landing_article_id = ""
+
+    resolved_links = [record for record in link_records if record.get("status") == "resolved"]
+    outbound_map: dict[str, list[str]] = {}
+    inbound_map: dict[str, list[str]] = {}
+    for record in resolved_links:
+        source_id = record.get("sourceArticleId") or ""
+        target_id = record.get("targetArticleId") or ""
+        if not source_id or not target_id:
+            continue
+        outbound_map.setdefault(source_id, [])
+        if target_id not in outbound_map[source_id]:
+            outbound_map[source_id].append(target_id)
+        inbound_map.setdefault(target_id, [])
+        if source_id not in inbound_map[target_id]:
+            inbound_map[target_id].append(source_id)
+
+    for values in outbound_map.values():
+        values.sort()
+    for values in inbound_map.values():
+        values.sort()
+
+    artifact = {
+        "meta": {
+            "generatedBy": "2-correct-links.py",
+            "matchingFile": str(matching_path),
+            "landingArticleId": landing_article_id,
+            "articleCount": len(article_files),
+            "linkCount": len(link_records),
+            "resolvedCount": len(resolved_links),
+            "brokenCount": len(broken_link_lines),
+        },
+        "articles": [file.stem for file in article_files],
+        "links": link_records,
+        "brokenLinks": [record for record in link_records if record.get("status") == "broken"],
+        "outbound": dict(sorted(outbound_map.items(), key=lambda item: item[0])),
+        "inbound": dict(sorted(inbound_map.items(), key=lambda item: item[0])),
+    }
+    internal_links_json.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
     if error_log.exists():
         error_log.unlink()
 
     print(
         f"Processed {len(article_files)} files; updated {touched_files}; replacements {total_replacements}; "
-        f"aa-images files {len(list(target_images_dir.glob('*')))}; not found {len(not_found)}."
+        f"aa-images files {len(list(target_images_dir.glob('*')))}; not found {len(not_found)}; "
+        f"broken links {len(broken_link_lines)}."
     )
     return 0
 

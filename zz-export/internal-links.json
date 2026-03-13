@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "generatedBy": "2-correct-links.py",
+    "matchingFile": "/home/ozo/ais/weblab/zz-migration/matching2.txt",
+    "landingArticleId": "hh-home",
+    "articleCount": 30,
+    "linkCount": 4,
+    "resolvedCount": 4,
+    "brokenCount": 0
+  },
+  "articles": [
+    "hh-2017-intuitives-lernen-fuer-kinder",
+    "hh-alle-termine",
+    "hh-aurasehen",
+    "hh-ausflug-extern-steine-u-wewelsburg",
+    "hh-bosnien-pyramiden-und-heilsicht",
+    "hh-heilsichtkurs",
+    "hh-home",
+    "hh-hypnose",
+    "hh-kontakt",
+    "hh-ptc1",
+    "hh-ptc2",
+    "hh-runen1",
+    "hh-runen2",
+    "hh-russische-heilweisen-i-haeufige-fragen",
+    "hh-russische-heilweisen-ii",
+    "hh-russland-schungit-reisebericht-heilreise-karelien",
+    "hh-schungit-erfahrungsberichte",
+    "hh-schungit",
+    "hh-schungitraum",
+    "hh-seminare-ausflug-schungitraum-heilsichtkurs-germanische-kraftplatze",
+    "hh-seminare-russische-heilweisen-i",
+    "hh-seminare-russland-schungit",
+    "hh-seminare",
+    "hh-steuerungen-2",
+    "hh-steuerungen",
+    "hh-teilnehmerstimmen",
+    "hh-thailand",
+    "hh-ueber-mich-f-rdermitglied-werden",
+    "hh-ueber-mich-vereinsstatuten",
+    "hh-ueber-mich"
+  ],
+  "links": [
+    {
+      "sourceArticleId": "hh-home",
+      "hrefOriginal": "http://127.0.0.1:8000/seminare/bosnien-pyramiden-und-heilsicht.html",
+      "hrefNormalized": "/zz-export/articles/hh-bosnien-pyramiden-und-heilsicht.htm",
+      "targetArticleId": "hh-bosnien-pyramiden-und-heilsicht",
+      "status": "resolved",
+      "reason": "internal-nav-ref"
+    },
+    {
+      "sourceArticleId": "hh-home",
+      "hrefOriginal": "http://127.0.0.1:8000/seminare/russland-schungit.html",
+      "hrefNormalized": "/zz-export/articles/hh-seminare-russland-schungit.htm",
+      "targetArticleId": "hh-seminare-russland-schungit",
+      "status": "resolved",
+      "reason": "internal-nav-ref"
+    },
+    {
+      "sourceArticleId": "hh-home",
+      "hrefOriginal": "http://127.0.0.1:8000/seminare/runische-heilweisen.html",
+      "hrefNormalized": "/zz-export/articles/hh-runen1.htm",
+      "targetArticleId": "hh-runen1",
+      "status": "resolved",
+      "reason": "internal-nav-ref"
+    },
+    {
+      "sourceArticleId": "hh-home",
+      "hrefOriginal": "http://127.0.0.1:8000/seminare/aura-sehen-intuitive-wahrnehmung.html",
+      "hrefNormalized": "/zz-export/articles/hh-aurasehen.htm",
+      "targetArticleId": "hh-aurasehen",
+      "status": "resolved",
+      "reason": "internal-nav-ref"
+    }
+  ],
+  "brokenLinks": [],
+  "outbound": {
+    "hh-home": [
+      "hh-aurasehen",
+      "hh-bosnien-pyramiden-und-heilsicht",
+      "hh-runen1",
+      "hh-seminare-russland-schungit"
+    ]
+  },
+  "inbound": {
+    "hh-aurasehen": [
+      "hh-home"
+    ],
+    "hh-bosnien-pyramiden-und-heilsicht": [
+      "hh-home"
+    ],
+    "hh-runen1": [
+      "hh-home"
+    ],
+    "hh-seminare-russland-schungit": [
+      "hh-home"
+    ]
+  }
+}

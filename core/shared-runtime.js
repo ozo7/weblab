@@ -9,7 +9,7 @@ import {
   mountErrorIntoPane
 } from "./content.js";
 import { createNavigationCore } from "./navigation-core.js";
-import { createNavigationTreeCore } from "./nav-tree-core.js";
+import { createSiteMap } from "./sitemap.js";
 import { createSettingsStore } from "./settings-store.js";
 
 function flattenTopLevelArticleIds(topLevel) {
@@ -40,13 +40,13 @@ export function createSharedRuntimeSession(options) {
 
   const runtime = {
     navigation: null,
-    navTree: null,
+    siteMap: null,
     settingsStore: createSettingsStore(),
     articleRenderToken: 0
   };
 
   async function ensureLoaded() {
-    if (runtimeState.website && runtime.navigation && runtime.navTree) {
+    if (runtimeState.website && runtime.navigation && runtime.siteMap) {
       return;
     }
 
@@ -63,9 +63,10 @@ export function createSharedRuntimeSession(options) {
       articleMap: runtimeState.articleMap,
       landingArticleId
     });
-    runtime.navTree = createNavigationTreeCore({
+    runtime.siteMap = createSiteMap({
       articleMap: runtimeState.articleMap,
-      topLevel: runtimeState.website.topLevel
+      topLevel: runtimeState.website.topLevel,
+      landingArticleId
     });
 
     runtime.navigation.subscribe((event) => {
@@ -122,8 +123,8 @@ export function createSharedRuntimeSession(options) {
     getNavigation() {
       return runtime.navigation;
     },
-    getNavTree() {
-      return runtime.navTree;
+    getSiteMap() {
+      return runtime.siteMap;
     },
     getSettingsStore() {
       return runtime.settingsStore;

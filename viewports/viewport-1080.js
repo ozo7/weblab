@@ -51,7 +51,7 @@ function computeDepthBackground(rail, depth) {
 export function createViewport1080(options) {
   const host = options.host;
   const navigation = options.navigation;
-  const navTreeCore = options.navTree;
+  const siteMap = options.siteMap;
   const homeArticleId = options.homeArticleId || null;
 
   host.innerHTML = [
@@ -77,24 +77,34 @@ export function createViewport1080(options) {
   const navTreeContainer = host.querySelector("#wv1080NavTree");
   const rail = host.querySelector(".wv1080-rail");
 
-  function createMenuRow(model) {
+  function getNodeTitle(node) {
+    if (typeof node.title === "string" && node.title.trim()) {
+      return node.title.trim();
+    }
+    if (typeof node.label === "string" && node.label.trim()) {
+      return node.label.trim();
+    }
+    return typeof node.articleId === "string" && node.articleId ? node.articleId : "Menu";
+  }
+
+  function createMenuRow(node) {
     const row = document.createElement("div");
     row.className = "wv1080-nav-row wv1080-menu-row";
-    row.style.paddingLeft = model.depth * 10 + "px";
-    const background = computeDepthBackground(rail, model.depth);
+    row.style.paddingLeft = node.depth * 10 + "px";
+    const background = computeDepthBackground(rail, node.depth);
     if (background) {
       row.style.backgroundColor = background;
     }
 
-    if (model.hasChildren) {
+    if (node.hasChildren) {
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "wv1080-menu-toggle";
-      toggle.textContent = model.expanded ? "-" : "+";
-      toggle.setAttribute("aria-label", model.expanded ? "Collapse section" : "Expand section");
-      toggle.setAttribute("aria-expanded", model.expanded ? "true" : "false");
+      toggle.textContent = node.isExpanded ? "-" : "+";
+      toggle.setAttribute("aria-label", node.isExpanded ? "Collapse section" : "Expand section");
+      toggle.setAttribute("aria-expanded", node.isExpanded ? "true" : "false");
       toggle.addEventListener("click", () => {
-        model.onToggle();
+        siteMap.toggleNode(node.nodeId);
         render();
       });
       row.appendChild(toggle);
@@ -105,31 +115,34 @@ export function createViewport1080(options) {
       row.appendChild(spacer);
     }
 
-    if (model.canOpenArticle) {
+    if (node.isClickable) {
       const button = createButton(
-        typeof model.entry.title === "string" && model.entry.title.trim()
-          ? model.entry.title.trim()
-          : (typeof model.entry.label === "string" && model.entry.label.trim() ? model.entry.label.trim() : model.entry.articleId),
-        "wv1080-nav-btn" + (model.active ? " active" : ""),
-        model.onOpen
+        getNodeTitle(node),
+        "wv1080-nav-btn" + (node.isActive ? " active" : ""),
+        () => {
+          const articleId = siteMap.openNode(node.nodeId);
+          if (articleId) {
+            navigation.openArticleById(articleId);
+          }
+        }
       );
       row.appendChild(button);
     } else {
       const label = document.createElement("div");
       label.className = "wv1080-menu-label";
-      label.textContent = typeof model.entry.label === "string" && model.entry.label.trim() ? model.entry.label.trim() : "Menu";
+      label.textContent = getNodeTitle(node);
       row.appendChild(label);
     }
 
     return row;
   }
 
-  function createArticleRow(model) {
-    const isHomeRow = Boolean(homeArticleId) && model.depth === 0 && model.entry.articleId === homeArticleId;
+  function createArticleRow(node) {
+    const isHomeRow = Boolean(homeArticleId) && node.depth === 0 && node.articleId === homeArticleId;
     const row = document.createElement("div");
     row.className = "wv1080-nav-row wv1080-article-row" + (isHomeRow ? " wv1080-home-nav-row" : "");
-    row.style.paddingLeft = model.depth * 10 + "px";
-    const background = computeDepthBackground(rail, model.depth);
+    row.style.paddingLeft = node.depth * 10 + "px";
+    const background = computeDepthBackground(rail, node.depth);
     if (background) {
       row.style.backgroundColor = background;
     }
@@ -140,11 +153,14 @@ export function createViewport1080(options) {
     row.appendChild(spacer);
 
     const button = createButton(
-      (isHomeRow ? "⌂ " : "") + (typeof model.entry.title === "string" && model.entry.title.trim()
-        ? model.entry.title.trim()
-        : (typeof model.entry.label === "string" && model.entry.label.trim() ? model.entry.label.trim() : model.entry.articleId)),
-      "wv1080-nav-btn" + (model.active ? " active" : ""),
-      model.onOpen
+      (isHomeRow ? "⌂ " : "") + getNodeTitle(node),
+      "wv1080-nav-btn" + (node.isActive ? " active" : ""),
+      () => {
+        const articleId = siteMap.openNode(node.nodeId);
+        if (articleId) {
+          navigation.openArticleById(articleId);
+        }
+      }
     );
     row.appendChild(button);
 
@@ -164,13 +180,16 @@ export function createViewport1080(options) {
 
   function render() {
     const runtime = navigation.readState();
-    navTreeCore.render(navTreeContainer, {
-      selectedArticleId: runtime.selectedArticleId,
-      onOpenArticle(articleId) {
-        navigation.openArticleById(articleId);
-      },
-      renderMenu: createMenuRow,
-      renderArticle: createArticleRow
+    const tree = siteMap.getTreeModel(runtime.selectedArticleId);
+    navTreeContainer.innerHTML = "";
+    tree.forEach((node) => {
+      if (node.type === "menu") {
+        navTreeContainer.appendChild(createMenuRow(node));
+        return;
+      }
+      if (node.type === "article") {
+        navTreeContainer.appendChild(createArticleRow(node));
+      }
     });
   }
 
