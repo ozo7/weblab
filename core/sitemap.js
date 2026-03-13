@@ -212,6 +212,30 @@ export function createSiteMap(options) {
     return () => subscribers.delete(subscriber);
   }
 
+  function createSnapshot() {
+    return {
+      selectedArticleId: state.selectedArticleId,
+      landingArticleId: state.landingArticleId,
+      expandedNodeIds: Array.from(state.expandedNodeIds)
+    };
+  }
+
+  function loadSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== "object") {
+      return;
+    }
+    const nextExpanded = Array.isArray(snapshot.expandedNodeIds) ? snapshot.expandedNodeIds : [];
+    state.expandedNodeIds = new Set(nextExpanded.filter((id) => state.nodeById.has(id)));
+    if (isValidArticleId(articleMap, snapshot.selectedArticleId)) {
+      state.selectedArticleId = snapshot.selectedArticleId;
+      ensureExpandedForArticle(snapshot.selectedArticleId);
+    }
+    if (isValidArticleId(articleMap, snapshot.landingArticleId)) {
+      state.landingArticleId = snapshot.landingArticleId;
+    }
+    publish({ type: "load-snapshot" });
+  }
+
   indexTree(topLevel, null, []);
   if (state.landingArticleId) {
     ensureExpandedForArticle(state.landingArticleId);
@@ -229,6 +253,8 @@ export function createSiteMap(options) {
     setSelectedArticle,
     getSelectedArticle,
     subscribe,
+    createSnapshot,
+    loadSnapshot,
     readState
   };
 }

@@ -6,12 +6,12 @@ import { createViewport720 } from "../viewports/viewport-720.js";
 import { createViewport360 } from "../viewports/viewport-360.js";
 
 const OBJECT_DEFS = [
-  { key: "Navigation", active: false },
+  { key: "Navigation", active: true },
   { key: "SiteMap", active: true },
-  { key: "TagPool", active: false },
-  { key: "PagingQueue", active: false },
-  { key: "PagingHistory", active: false },
-  { key: "InternalLinks", active: false }
+  { key: "TagPool", active: true },
+  { key: "PagingQueue", active: true },
+  { key: "PagingHistory", active: true },
+  { key: "InternalLinks", active: true }
 ];
 
 const dom = {
@@ -116,6 +116,7 @@ function createViewportInstance(profile) {
     return createViewport720({
       host: dom.host,
       navigation: sharedRuntime.getNavigation(),
+      siteMap: sharedRuntime.getSiteMap(),
       settingsStore: sharedRuntime.getSettingsStore(),
       websiteTopLevel: sharedRuntime.runtimeState.website ? sharedRuntime.runtimeState.website.topLevel : [],
       articleMap: sharedRuntime.runtimeState.articleMap,
@@ -126,6 +127,7 @@ function createViewportInstance(profile) {
   return createViewport360({
     host: dom.host,
     navigation: sharedRuntime.getNavigation(),
+    siteMap: sharedRuntime.getSiteMap(),
     settingsStore: sharedRuntime.getSettingsStore(),
     websiteTopLevel: sharedRuntime.runtimeState.website ? sharedRuntime.runtimeState.website.topLevel : [],
     articleMap: sharedRuntime.runtimeState.articleMap,
@@ -204,34 +206,63 @@ function buildFullTreeFromWebsite(topLevel, selectedArticleId, expandedNodeIds) 
 }
 
 function getMutableState(objectKey) {
-  if (objectKey !== "SiteMap") {
-    return {
-      object: objectKey,
-      active: false
-    };
-  }
+  if (objectKey === "SiteMap") {
+    const siteMap = sharedRuntime.getSiteMap();
+    if (!siteMap) {
+      return {
+        object: objectKey,
+        active: true,
+        available: false
+      };
+    }
 
-  const siteMap = sharedRuntime.getSiteMap();
-  if (!siteMap) {
+    const base = typeof siteMap.readState === "function" ? siteMap.readState() : {};
+    const topLevel = sharedRuntime.runtimeState.website && Array.isArray(sharedRuntime.runtimeState.website.topLevel)
+      ? sharedRuntime.runtimeState.website.topLevel
+      : [];
+
     return {
       object: objectKey,
       active: true,
-      available: false
+      selectedArticleId: base.selectedArticleId || null,
+      landingArticleId: base.landingArticleId || null,
+      expandedNodeIds: Array.isArray(base.expandedNodeIds) ? base.expandedNodeIds.slice() : [],
+      fullTree: buildFullTreeFromWebsite(topLevel, base.selectedArticleId || null, Array.isArray(base.expandedNodeIds) ? base.expandedNodeIds : [])
     };
   }
-
-  const base = typeof siteMap.readState === "function" ? siteMap.readState() : {};
-  const topLevel = sharedRuntime.runtimeState.website && Array.isArray(sharedRuntime.runtimeState.website.topLevel)
-    ? sharedRuntime.runtimeState.website.topLevel
-    : [];
-
+  if (objectKey === "Navigation") {
+    const navigation = sharedRuntime.getNavigationObject();
+    return navigation && typeof navigation.readState === "function"
+      ? Object.assign({ object: objectKey, active: true }, navigation.readState())
+      : { object: objectKey, active: true, available: false };
+  }
+  if (objectKey === "TagPool") {
+    const tagPool = sharedRuntime.getTagPool();
+    return tagPool && typeof tagPool.readState === "function"
+      ? Object.assign({ object: objectKey, active: true }, tagPool.readState())
+      : { object: objectKey, active: true, available: false };
+  }
+  if (objectKey === "PagingQueue") {
+    const pagingQueue = sharedRuntime.getPagingQueue();
+    return pagingQueue && typeof pagingQueue.readState === "function"
+      ? Object.assign({ object: objectKey, active: true }, pagingQueue.readState())
+      : { object: objectKey, active: true, available: false };
+  }
+  if (objectKey === "PagingHistory") {
+    const pagingHistory = sharedRuntime.getPagingHistory();
+    return pagingHistory && typeof pagingHistory.readState === "function"
+      ? Object.assign({ object: objectKey, active: true }, pagingHistory.readState())
+      : { object: objectKey, active: true, available: false };
+  }
+  if (objectKey === "InternalLinks") {
+    const internalLinks = sharedRuntime.getInternalLinks();
+    return internalLinks && typeof internalLinks.readState === "function"
+      ? Object.assign({ object: objectKey, active: true }, internalLinks.readState())
+      : { object: objectKey, active: true, available: false };
+  }
   return {
     object: objectKey,
-    active: true,
-    selectedArticleId: base.selectedArticleId || null,
-    landingArticleId: base.landingArticleId || null,
-    expandedNodeIds: Array.isArray(base.expandedNodeIds) ? base.expandedNodeIds.slice() : [],
-    fullTree: buildFullTreeFromWebsite(topLevel, base.selectedArticleId || null, Array.isArray(base.expandedNodeIds) ? base.expandedNodeIds : [])
+    active: false
   };
 }
 
@@ -429,9 +460,17 @@ function bindObjectStateSync() {
     return;
   }
 
-  const siteMap = sharedRuntime.getSiteMap();
-  if (siteMap && typeof siteMap.subscribe === "function") {
-    runtime.unbindObjectSubscriptions.push(siteMap.subscribe(() => {
+  const objectMap = {
+    SiteMap: sharedRuntime.getSiteMap(),
+    Navigation: sharedRuntime.getNavigationObject(),
+    TagPool: sharedRuntime.getTagPool(),
+    PagingQueue: sharedRuntime.getPagingQueue(),
+    PagingHistory: sharedRuntime.getPagingHistory(),
+    InternalLinks: sharedRuntime.getInternalLinks()
+  };
+  const activeObject = objectMap[runtime.selectedObjectKey];
+  if (activeObject && typeof activeObject.subscribe === "function") {
+    runtime.unbindObjectSubscriptions.push(activeObject.subscribe(() => {
       renderObjectWorkspace();
     }));
   }

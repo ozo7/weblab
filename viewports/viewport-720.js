@@ -31,13 +31,6 @@ function uniqueArticleOrder(topLevel, articleMap) {
   return ids;
 }
 
-function getMenuKey(entry, path) {
-  if (typeof entry.articleId === "string" && entry.articleId.trim()) {
-    return "menu:article:" + entry.articleId + ":" + path.join(".");
-  }
-  return "menu:path:" + path.join(".");
-}
-
 function getQueueAround(queueIds, currentId) {
   const index = queueIds.indexOf(currentId);
   return {
@@ -49,6 +42,7 @@ function getQueueAround(queueIds, currentId) {
 export function createViewport720(options) {
   const host = options.host;
   const navigation = options.navigation;
+  const siteMap = options.siteMap;
   const settingsStore = options.settingsStore;
   const websiteTopLevel = Array.isArray(options.websiteTopLevel) ? options.websiteTopLevel : [];
   const articleMap = options.articleMap instanceof Map ? options.articleMap : new Map();
@@ -69,12 +63,10 @@ export function createViewport720(options) {
   const defaultSession = {
     railOpen: true,
     currentArticleId: fallbackArticleId,
-    expandedMenuKeys: [],
     queue: queueCore.createSnapshot()
   };
   const session = settingsStore.getViewportSession("720", defaultSession);
   queueCore.loadSnapshot(session.queue);
-  const expandedMenuKeys = new Set(Array.isArray(session.expandedMenuKeys) ? session.expandedMenuKeys : []);
   let railOpen = session.railOpen !== false;
 
   host.innerHTML = [
@@ -121,7 +113,6 @@ export function createViewport720(options) {
     settingsStore.setViewportSession("720", {
       railOpen,
       currentArticleId: navigation.readState().selectedArticleId || fallbackArticleId,
-      expandedMenuKeys: Array.from(expandedMenuKeys),
       queue: queueCore.createSnapshot()
     });
     settingsStore.schedulePersist(120);
@@ -196,118 +187,70 @@ export function createViewport720(options) {
   function renderTree() {
     const selectedArticleId = navigation.readState().selectedArticleId;
     treeContainer.innerHTML = "";
-
-    function renderEntries(entries, depth, path) {
-      if (!Array.isArray(entries)) {
+    const tree = siteMap.getTreeModel(selectedArticleId);
+    tree.forEach((node) => {
+      if (node.type !== "menu" && node.type !== "article") {
         return;
       }
-      entries.forEach((entry, index) => {
-        if (!entry || typeof entry !== "object") {
-          return;
-        }
-        const nextPath = path.concat(index);
+      const row = document.createElement("div");
+      row.className = "wv720-tree-row " + (node.type === "menu" ? "is-menu" : "is-article");
+      row.style.paddingLeft = String(node.depth * 12) + "px";
 
-        if (entry.type === "menu") {
-          const menuKey = getMenuKey(entry, nextPath);
-          const hasChildren = Array.isArray(entry.children) && entry.children.length > 0;
-          const canOpen = typeof entry.articleId === "string" && articleMap.has(entry.articleId);
-          const expanded = hasChildren && expandedMenuKeys.has(menuKey);
+      if (node.type === "menu" && node.hasChildren) {
+        const toggle = createButton(node.isExpanded ? "-" : "+", "wv720-tree-toggle", () => {
+          siteMap.toggleNode(node.nodeId);
+          renderTree();
+          persistSession();
+        });
+        row.appendChild(toggle);
+      } else {
+        const spacer = document.createElement("span");
+        spacer.className = "wv720-tree-toggle-spacer";
+        row.appendChild(spacer);
+      }
 
-          const row = document.createElement("div");
-          row.className = "wv720-tree-row is-menu";
-          row.style.paddingLeft = String(depth * 12) + "px";
-
-          if (hasChildren) {
-            const toggle = createButton(expanded ? "-" : "+", "wv720-tree-toggle", () => {
-              if (expandedMenuKeys.has(menuKey)) {
-                expandedMenuKeys.delete(menuKey);
-              } else {
-                expandedMenuKeys.add(menuKey);
-              }
-              renderTree();
-              persistSession();
-            });
-            row.appendChild(toggle);
-          } else {
-            const spacer = document.createElement("span");
-            spacer.className = "wv720-tree-toggle-spacer";
-            row.appendChild(spacer);
+      const label = node.type === "menu"
+        ? (node.label && node.label.trim() ? node.label.trim() : "Section")
+        : ((articleMap.get(node.articleId) && articleMap.get(node.articleId).title) || node.title || node.articleId);
+      const canOpen = Boolean(node.isClickable && node.articleId);
+      const title = createButton(
+        label,
+        "wv720-tree-main" + (canOpen && selectedArticleId === node.articleId ? " active" : ""),
+        () => {
+          if (node.type === "menu" && node.hasChildren && !node.isExpanded) {
+            siteMap.toggleNode(node.nodeId);
           }
-
-          const title = createButton(
-            typeof entry.label === "string" && entry.label.trim() ? entry.label.trim() : "Section",
-            "wv720-tree-main" + (canOpen && selectedArticleId === entry.articleId ? " active" : ""),
-            () => {
-              if (hasChildren) {
-                expandedMenuKeys.add(menuKey);
-              }
-              if (canOpen) {
-                openArticle(entry.articleId);
-              }
-              renderTree();
-              persistSession();
-            }
-          );
-          row.appendChild(title);
-
           if (canOpen) {
-            const select = createButton(
-              queueCore.isQueued(entry.articleId) ? "●" : "○",
-              "wv720-tree-queue-toggle",
-              () => {
-                queueCore.toggleSitemapSelection(entry.articleId);
-                renderAll();
-                persistSession();
-              }
-            );
-            row.appendChild(select);
-          } else {
-            const spacer = document.createElement("span");
-            spacer.className = "wv720-tree-queue-spacer";
-            row.appendChild(spacer);
-          }
-
-          treeContainer.appendChild(row);
-          if (expanded) {
-            renderEntries(entry.children, depth + 1, nextPath);
-          }
-          return;
-        }
-
-        if (entry.type === "article" && typeof entry.articleId === "string" && articleMap.has(entry.articleId)) {
-          const row = document.createElement("div");
-          row.className = "wv720-tree-row is-article";
-          row.style.paddingLeft = String(depth * 12) + "px";
-
-          const spacer = document.createElement("span");
-          spacer.className = "wv720-tree-toggle-spacer";
-          row.appendChild(spacer);
-
-          const article = articleMap.get(entry.articleId);
-          const title = createButton(
-            article.title,
-            "wv720-tree-main" + (selectedArticleId === entry.articleId ? " active" : ""),
-            () => openArticle(entry.articleId)
-          );
-          row.appendChild(title);
-
-          const select = createButton(
-            queueCore.isQueued(entry.articleId) ? "●" : "○",
-            "wv720-tree-queue-toggle",
-            () => {
-              queueCore.toggleSitemapSelection(entry.articleId);
-              renderAll();
-              persistSession();
+            const articleId = siteMap.openNode(node.nodeId);
+            if (articleId) {
+              openArticle(articleId);
             }
-          );
-          row.appendChild(select);
-
-          treeContainer.appendChild(row);
+          }
+          renderTree();
+          persistSession();
         }
-      });
-    }
+      );
+      row.appendChild(title);
 
-    renderEntries(websiteTopLevel, 0, []);
+      if (canOpen) {
+        const select = createButton(
+          queueCore.isQueued(node.articleId) ? "●" : "○",
+          "wv720-tree-queue-toggle",
+          () => {
+            queueCore.toggleSitemapSelection(node.articleId);
+            renderAll();
+            persistSession();
+          }
+        );
+        row.appendChild(select);
+      } else {
+        const spacer = document.createElement("span");
+        spacer.className = "wv720-tree-queue-spacer";
+        row.appendChild(spacer);
+      }
+
+      treeContainer.appendChild(row);
+    });
   }
 
   function renderAll() {

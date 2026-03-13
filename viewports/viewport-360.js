@@ -31,13 +31,6 @@ function uniqueArticleOrder(topLevel, articleMap) {
   return ids;
 }
 
-function getMenuKey(entry, path) {
-  if (typeof entry.articleId === "string" && entry.articleId.trim()) {
-    return "menu:article:" + entry.articleId + ":" + path.join(".");
-  }
-  return "menu:path:" + path.join(".");
-}
-
 function getQueueAround(queueIds, currentId) {
   const index = queueIds.indexOf(currentId);
   return {
@@ -49,6 +42,7 @@ function getQueueAround(queueIds, currentId) {
 export function createViewport360(options) {
   const host = options.host;
   const navigation = options.navigation;
+  const siteMap = options.siteMap;
   const settingsStore = options.settingsStore;
   const websiteTopLevel = Array.isArray(options.websiteTopLevel) ? options.websiteTopLevel : [];
   const articleMap = options.articleMap instanceof Map ? options.articleMap : new Map();
@@ -72,12 +66,10 @@ export function createViewport360(options) {
     tagsEnabled: false,
     tagChooserOpen: false,
     selectedArticleId: fallbackArticleId,
-    expandedMenuKeys: [],
     queue: queueCore.createSnapshot()
   };
   const session = settingsStore.getViewportSession("360", defaultSession);
   queueCore.loadSnapshot(session.queue);
-  const expandedMenuKeys = new Set(Array.isArray(session.expandedMenuKeys) ? session.expandedMenuKeys : []);
   let navOpen = true;
   let activeScreen = session.activeScreen === "sitemap" || session.activeScreen === "queue" ? session.activeScreen : null;
   let tagsEnabled = session.tagsEnabled === true;
@@ -143,7 +135,6 @@ export function createViewport360(options) {
       tagsEnabled,
       tagChooserOpen,
       selectedArticleId: navigation.readState().selectedArticleId || fallbackArticleId,
-      expandedMenuKeys: Array.from(expandedMenuKeys),
       queue: queueCore.createSnapshot()
     });
     settingsStore.schedulePersist(120);
@@ -240,6 +231,7 @@ export function createViewport360(options) {
   function renderTree(container) {
     container.innerHTML = "";
     const selectedArticleId = navigation.readState().selectedArticleId;
+    const tree = siteMap.getTreeModel(selectedArticleId);
 
     function toggleSitemapSelection(articleId) {
       queueCore.toggleSitemapSelection(articleId);
@@ -268,115 +260,68 @@ export function createViewport360(options) {
       });
     }
 
-    function renderEntries(entries, depth, path) {
-      if (!Array.isArray(entries)) {
+    tree.forEach((node) => {
+      if (node.type !== "menu" && node.type !== "article") {
         return;
       }
-      entries.forEach((entry, index) => {
-        if (!entry || typeof entry !== "object") {
-          return;
-        }
-        const nextPath = path.concat(index);
+      const canOpen = Boolean(node.isClickable && node.articleId);
+      const row = document.createElement("div");
+      row.className = "wv360-sitemap-row " + (node.type === "menu" ? "is-menu" : "is-article");
+      row.style.paddingLeft = String(Math.min(20 + node.depth * 14, 68)) + "px";
 
-        if (entry.type === "menu") {
-          const menuKey = getMenuKey(entry, nextPath);
-          const hasChildren = Array.isArray(entry.children) && entry.children.length > 0;
-          const canOpen = typeof entry.articleId === "string" && articleMap.has(entry.articleId);
-          const expanded = hasChildren && expandedMenuKeys.has(menuKey);
+      const main = document.createElement(canOpen ? "button" : "div");
+      if (canOpen) {
+        main.type = "button";
+      }
+      main.className = "wv360-sitemap-main";
+      const title = node.type === "article"
+        ? ((articleMap.get(node.articleId) && articleMap.get(node.articleId).title) || node.title || node.articleId)
+        : (node.label && node.label.trim() ? node.label.trim() : "Section");
+      main.textContent = title;
+      if (canOpen && selectedArticleId === node.articleId && !queueCore.isQueued(node.articleId)) {
+        main.classList.add("is-current");
+      }
+      if (canOpen && queueCore.isQueued(node.articleId)) {
+        main.classList.add("is-queued");
+      }
+      if (canOpen) {
+        bindSitemapButton(main, node.articleId);
+      } else {
+        main.classList.add("is-static");
+      }
+      row.appendChild(main);
 
-          const row = document.createElement("div");
-          row.className = "wv360-sitemap-row is-menu";
-          row.style.paddingLeft = String(Math.min(20 + depth * 14, 68)) + "px";
+      if (node.type === "menu" && node.hasChildren) {
+        const expandButton = createButton(node.isExpanded ? "-" : "+", "wv360-sitemap-toggle", () => {
+          siteMap.toggleNode(node.nodeId);
+          renderScreen();
+          persistSession();
+        });
+        row.appendChild(expandButton);
+      } else {
+        const spacer = document.createElement("div");
+        spacer.className = "wv360-sitemap-toggle-spacer";
+        row.appendChild(spacer);
+      }
 
-          const main = document.createElement(canOpen ? "button" : "div");
-          if (canOpen) {
-            main.type = "button";
-          }
-          main.className = "wv360-sitemap-main";
-          main.textContent = typeof entry.label === "string" && entry.label.trim() ? entry.label.trim() : "Section";
-          if (canOpen && selectedArticleId === entry.articleId && !queueCore.isQueued(entry.articleId)) {
-            main.classList.add("is-current");
-          }
-          if (canOpen && queueCore.isQueued(entry.articleId)) {
-            main.classList.add("is-queued");
-          }
-          if (canOpen) {
-            bindSitemapButton(main, entry.articleId);
-          } else {
-            main.classList.add("is-static");
-          }
-          row.appendChild(main);
-
-          if (hasChildren) {
-            const expandButton = createButton(expanded ? "-" : "+", "wv360-sitemap-toggle", () => {
-              if (expandedMenuKeys.has(menuKey)) {
-                expandedMenuKeys.delete(menuKey);
-              } else {
-                expandedMenuKeys.add(menuKey);
-              }
-              renderScreen();
-              persistSession();
-            });
-            row.appendChild(expandButton);
-          } else {
-            const spacer = document.createElement("div");
-            spacer.className = "wv360-sitemap-toggle-spacer";
-            row.appendChild(spacer);
-          }
-
-          container.appendChild(row);
-          if (expanded) {
-            renderEntries(entry.children, depth + 1, nextPath);
-          }
-          return;
-        }
-
-        if (entry.type === "article" && typeof entry.articleId === "string" && articleMap.has(entry.articleId)) {
-          const row = document.createElement("div");
-          row.className = "wv360-sitemap-row is-article";
-          row.style.paddingLeft = String(Math.min(20 + depth * 14, 68)) + "px";
-
-          const button = createButton(articleMap.get(entry.articleId).title, "wv360-sitemap-main", () => {});
-          if (selectedArticleId === entry.articleId && !queueCore.isQueued(entry.articleId)) {
-            button.classList.add("is-current");
-          }
-          if (queueCore.isQueued(entry.articleId)) {
-            button.classList.add("is-queued");
-          }
-          bindSitemapButton(button, entry.articleId);
-          row.appendChild(button);
-
-          const spacer = document.createElement("div");
-          spacer.className = "wv360-sitemap-toggle-spacer";
-          row.appendChild(spacer);
-
-          container.appendChild(row);
-        }
-      });
-    }
-
-    renderEntries(websiteTopLevel, 0, []);
+      container.appendChild(row);
+    });
   }
 
-  function collectExpandableMenuKeys() {
-    const keys = [];
-    function walk(entries, path) {
-      if (!Array.isArray(entries)) {
-        return;
+  function expandAllSitemapMenus() {
+    let changed = false;
+    let safety = 0;
+    while (safety < 500) {
+      safety += 1;
+      const visible = siteMap.getTreeModel(navigation.readState().selectedArticleId);
+      const nextCollapsed = visible.find((node) => node.type === "menu" && node.hasChildren && !node.isExpanded);
+      if (!nextCollapsed) {
+        break;
       }
-      entries.forEach((entry, index) => {
-        if (!entry || typeof entry !== "object" || entry.type !== "menu") {
-          return;
-        }
-        const nextPath = path.concat(index);
-        if (Array.isArray(entry.children) && entry.children.length > 0) {
-          keys.push(getMenuKey(entry, nextPath));
-        }
-        walk(entry.children, nextPath);
-      });
+      siteMap.toggleNode(nextCollapsed.nodeId);
+      changed = true;
     }
-    walk(websiteTopLevel, []);
-    return keys;
+    return changed;
   }
 
   function renderScreen() {
@@ -433,8 +378,8 @@ export function createViewport360(options) {
   });
   host.querySelector('[data-action="sitemap"]').addEventListener("click", () => {
     activeScreen = "sitemap";
-    if (!expandedMenuKeys.size) {
-      collectExpandableMenuKeys().forEach((key) => expandedMenuKeys.add(key));
+    if (expandAllSitemapMenus()) {
+      persistSession();
     }
     setNavOpen(false);
     renderAll();

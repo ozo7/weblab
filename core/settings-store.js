@@ -29,6 +29,9 @@ export function createSettingsStore() {
     if (!isObject(settings.app.viewportSessions)) {
       settings.app.viewportSessions = {};
     }
+    if (!isObject(settings.app.objects)) {
+      settings.app.objects = {};
+    }
   }
 
   async function load() {
@@ -58,6 +61,23 @@ export function createSettingsStore() {
   function setViewportSession(viewportKey, snapshot) {
     ensureShape();
     settings.app.viewportSessions[viewportKey] = cloneJson(snapshot);
+  }
+
+  function getObjectSnapshot(objectKey, fallback) {
+    ensureShape();
+    const stored = settings.app.objects[objectKey];
+    if (!isObject(stored)) {
+      return cloneJson(fallback);
+    }
+    if (!isObject(fallback)) {
+      return cloneJson(stored);
+    }
+    return Object.assign({}, cloneJson(fallback), cloneJson(stored));
+  }
+
+  function setObjectSnapshot(objectKey, snapshot) {
+    ensureShape();
+    settings.app.objects[objectKey] = cloneJson(snapshot);
   }
 
   async function persistNow() {
@@ -95,6 +115,8 @@ export function createSettingsStore() {
     read,
     getViewportSession,
     setViewportSession,
+    getObjectSnapshot,
+    setObjectSnapshot,
     schedulePersist,
     persistNow
   };
