@@ -1,0 +1,196 @@
+:root {
+  --mint-surface: #f8fcf8;
+  --mint-layer: #ffffff;
+  --mint-text: #17301f;
+  --mint-text-soft: #294537;
+  --mint-border: #b8cabc;
+  --mint-border-soft: #d8e2db;
+  --mint-interactive: #e5f1e8;
+  --mint-interactive-strong: #dce9df;
+  --mint-depth-1: rgba(23, 48, 31, 0.15);
+  --mint-depth-2: rgba(23, 48, 31, 0.30);
+  --mint-depth-3: rgba(23, 48, 31, 0.45);
+  --mint-depth-4: rgba(23, 48, 31, 0.60);
+}
+
+.cs-shell {
+  background: var(--mint-surface);
+  color: var(--mint-text);
+}
+
+.cs-content-host {
+  border: 1px solid var(--mint-border-soft);
+  border-radius: 10px;
+  background: var(--mint-layer);
+}
+
+.cs-content-host #pane2main {
+  background: var(--mint-layer);
+  border-color: var(--mint-border-soft);
+  border-radius: 12px;
+}
+
+.cs-rail {
+  border: 1px solid var(--mint-border-soft);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fbf7, #edf5ef);
+}
+
+.cs-rail-head {
+  border-bottom: 1px solid var(--mint-border-soft);
+}
+
+.cs-head-btn,
+.cs-menu-trigger,
+.cs-menu-item,
+.cs-action-btn,
+.cs-scheme-btn,
+.cs-list-btn,
+.cs-mini-nav-btn,
+.cs-chip-btn,
+.cs-nav-btn,
+.cs-menu-toggle {
+  border: 1px solid var(--mint-border);
+  border-radius: 8px;
+  background: var(--mint-layer);
+  color: var(--mint-text);
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.cs-head-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.cs-head-icon {
+  display: inline-block;
+  font-size: 1.5em;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cs-menu-item,
+.cs-menu-toggle {
+  border-radius: 6px;
+}
+
+.cs-chip-btn {
+  border-radius: 999px;
+}
+
+.cs-menu-list {
+  border: 1px solid var(--mint-border);
+  border-radius: 8px;
+  background: var(--mint-layer);
+  box-shadow: 0 4px 16px rgba(20, 40, 28, 0.12);
+}
+
+.cs-menu-item.active,
+.cs-list-btn.active,
+.cs-chip-btn.active,
+.cs-nav-btn.active,
+.cs-action-btn.active,
+.cs-mini-nav-btn.active {
+  border-color: #6e9a7c;
+  background: var(--mint-interactive);
+}
+
+.cs-scheme-btn.active {
+  box-shadow: inset 0 0 0 2px var(--mint-text);
+}
+
+.cs-scheme-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.25);
+}
+
+.cs-section-head,
+.cs-menu-label {
+  color: var(--mint-text-soft);
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.cs-empty {
+  border: 1px dashed #bfd1c3;
+  border-radius: 8px;
+  background: #f1f8f2;
+  color: #3f5a46;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.cs-preview-card {
+  border: 1px solid var(--mint-border);
+  border-radius: 12px;
+}
+
+.cs-preview-btn {
+  border: 1px solid var(--mint-border);
+  border-radius: 7px;
+}
+
+.cs-preview-queue {
+  border: 1px solid var(--mint-border);
+  border-radius: 8px;
+}
+
+.cs-preview-qrow {
+  border-bottom: 1px solid var(--mint-border);
+}
+
+.cs-preview-tag {
+  border: 1px solid var(--mint-border);
+  border-radius: 999px;
+}
+
+.cs-preview-placeholder {
+  border: 1px dashed var(--mint-border);
+  border-radius: 7px;
+}
+
+.cs-queue-stripe {
+  background: #111111;
+}
+
+.cs-nav-row {
+  background: transparent;
+}
+
+.cs-nav-row.is-depth-1 {
+  background: var(--mint-depth-1);
+}
+
+.cs-nav-row.is-depth-2 {
+  background: var(--mint-depth-2);
+}
+
+.cs-nav-row.is-depth-3 {
+  background: var(--mint-depth-3);
+}
+
+.cs-nav-row.is-depth-4 {
+  background: var(--mint-depth-4);
+}
+
+.cs-nav-row.is-depth-5 {
+  background: var(--mint-depth-4);
+}
+
+.cs-nav-row.is-depth-6 {
+  background: var(--mint-depth-4);
+}
+
+.cs-floating-btn {
+  border: 1px solid var(--mint-border);
+  border-color: var(--mint-border);
+  color: var(--mint-text);
+  background: var(--mint-layer);
+}
+
+.cs-panel-head {
+  border-bottom: 1px solid var(--mint-border-soft);
+  background: #f3f8f4;
+  border-color: var(--mint-border-soft);
+}

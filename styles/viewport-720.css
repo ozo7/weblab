@@ -12,237 +12,449 @@
 .wv720-shell {
   position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
+  height: 100vh;
   overflow: hidden;
-  background: #f6fbf7;
 }
 
 .wv720-content-host {
   position: relative;
   height: 100%;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.wv720-toolbar {
-  display: grid;
-  grid-template-columns: auto auto auto auto auto;
-  gap: 6px;
-  padding: 6px;
-  border-bottom: 1px solid #d6e1d8;
-  background: #f0f6f1;
-}
-
-.wv720-toolbar-btn {
-  border: 1px solid #b8cabc;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #17301f;
-  min-height: 32px;
-  text-align: left;
-  padding: 6px 9px;
-  font: 600 0.86rem/1.1 "Trebuchet MS", "Segoe UI", sans-serif;
-  cursor: pointer;
-}
-
-.wv720-toolbar-btn[disabled] {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.wv720-rail-open-btn {
-  margin-left: auto;
+  overflow: auto;
 }
 
 .wv720-content-host #pane2main {
   overflow: auto;
   min-width: 0;
-}
-
-.wv720-rail-edge {
-  position: absolute;
-  top: 54px;
-  right: 10px;
-  z-index: 4;
-  width: 28px;
-  height: 38px;
-  border: 1px solid #b8cabc;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #17301f;
-  cursor: pointer;
-}
-
-.wv720-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  border: 0;
-  margin: 0;
-  background: rgba(18, 28, 21, 0.34);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 150ms ease;
+  min-height: 100%;
+  height: 100%;
 }
 
 .wv720-rail {
   position: absolute;
   top: 0;
   right: 0;
-  z-index: 3;
   width: 300px;
   max-width: calc(100% - 24px);
   height: 100%;
-  transform: translateX(102%);
-  transition: transform 170ms ease;
-  border-left: 1px solid #cbdacb;
-  background: #f9fcf9;
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  pointer-events: none;
 }
 
-.wv720-shell[data-rail="open"] .wv720-rail {
-  transform: translateX(0);
-}
-
-.wv720-shell[data-rail="open"] .wv720-scrim {
-  opacity: 1;
+.wv720-rail-toggle {
+  position: absolute;
+  top: 189px;
+  right: 0;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: transparent;
+  cursor: pointer;
+  font: inherit;
+  transform: translate(25%, 0);
+  box-shadow: 0 8px 16px rgba(24, 50, 34, 0.14);
+  z-index: 8;
   pointer-events: auto;
 }
 
-.wv720-rail-head {
+.wv720-rail-toggle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 10px solid #2a5c42;
+}
+
+.wv720-shell[data-rail="closed"] .wv720-rail-toggle::before {
+  border-left: 0;
+  border-right: 10px solid #2a5c42;
+}
+
+.wv720-rail-panel {
+  position: absolute;
+  inset: 0;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 170ms ease, opacity 170ms ease;
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.wv720-shell[data-rail="closed"] .wv720-rail-panel {
+  transform: translateX(102%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wv720-shared-rail {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.wv720-nav-rail {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.wv720-nav-rail-head {
+  padding: 10px;
+  display: flex;
   align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid #d5e2d6;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.wv720-rail-title {
-  font: 700 0.92rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
-  color: #23422f;
+.wv720-nav-rail-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
-.wv720-rail-close {
-  width: 28px;
-  height: 28px;
-  border: 1px solid #b8cabc;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #17301f;
+.wv720-head-btn {
+  min-height: 32px;
+  padding: 4px 10px;
+  font: 700 0.82rem/1.1 "Trebuchet MS", "Segoe UI", sans-serif;
   cursor: pointer;
 }
 
-.wv720-tags,
-.wv720-queue {
-  padding: 8px;
-  border-bottom: 1px solid #dde8df;
+.wv720-head-btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.wv720-nav-rail-menu-wrap {
+  position: relative;
+}
+
+.wv720-nav-rail-menu-btn {
+  min-width: 38px;
+  min-height: 32px;
+  padding: 2px 8px;
+  font: 700 1rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-nav-rail-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 2;
+  width: 200px;
+  padding: 6px;
+  display: grid;
+  gap: 4px;
+}
+
+.wv720-nav-rail-menu-list[hidden] {
+  display: none !important;
+}
+
+.wv720-nav-rail-menu-item {
+  min-height: 30px;
+  text-align: left;
+  padding: 4px 8px;
+  font: 600 0.84rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-nav-rail-scroll {
+  padding: 0 10px 10px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.wv720-config-panel,
+.wv720-history,
+.wv720-tags-pane {
+  margin: 10px 0;
   display: grid;
   gap: 8px;
 }
 
-.wv720-tags-wrap {
+.wv720-history-head,
+.wv720-tagpool-head {
+  font: 700 0.86rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-config-toggle {
+  width: 100%;
+  min-height: 34px;
+  text-align: left;
+  padding: 6px 10px;
+  font: 700 0.86rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-config-scheme-list {
+  display: grid;
+  gap: 6px;
+}
+
+.wv720-config-scheme-btn {
+  width: 100%;
+  min-height: 34px;
+  text-align: left;
+  padding: 6px 10px;
+  font: 700 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-config-pastel-row {
+  display: grid;
+  gap: 6px;
+  align-items: start;
+  justify-items: start;
+}
+
+.wv720-config-pastel-label {
+  font: 700 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-config-preview-pane {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+.wv720-config-preview-stage {
+  width: 100%;
+  min-height: 100%;
+  padding: 18px;
+}
+
+.wv720-config-preview-card {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.wv720-config-preview-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wv720-config-preview-btn {
+  min-height: 26px;
+  padding: 4px 9px;
+  font: 700 0.8rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-config-preview-title {
+  font: 700 0.86rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-config-preview-queue {
+  overflow: hidden;
+}
+
+.wv720-config-preview-qrow {
+  min-height: 30px;
+  padding: 5px 7px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font: 600 0.8rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-config-preview-qrow:last-child {
+  border-bottom: 0;
+}
+
+.wv720-config-preview-stripe {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.wv720-config-preview-stripes {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.wv720-config-preview-stripes i {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.wv720-config-preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-config-preview-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.wv720-tag-chip,
-.wv720-clear-btn {
-  border: 1px solid #b8cabc;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #17301f;
-  min-height: 27px;
-  padding: 4px 9px;
-  font: 600 0.75rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+.wv720-config-preview-tag,
+.wv720-tag-btn,
+.wv720-tag-clear {
+  min-height: 28px;
+  padding: 4px 10px;
+  font: 600 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
   cursor: pointer;
 }
 
-.wv720-tag-chip.active {
-  border-color: #6e9a7c;
-  background: #e6f1e8;
+.wv720-config-preview-placeholder,
+.wv720-history-empty {
+  padding: 10px;
+  font: 600 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
-.wv720-queue-summary {
-  font: 700 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
-  color: #325240;
-}
-
-.wv720-queue-list {
+.wv720-history-list {
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
-.wv720-queue-item {
-  border: 1px solid #c4d3c7;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #17301f;
-  min-height: 27px;
-  text-align: left;
-  padding: 4px 7px;
-  font: 600 0.75rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
-  cursor: pointer;
-}
-
-.wv720-queue-item.active {
-  border-color: #6e9a7c;
-  background: #e6f1e8;
-}
-
-.wv720-tree {
+.wv720-tags-queue-list {
+  display: grid;
+  grid-template-rows: repeat(7, 34px);
+  grid-auto-rows: 34px;
+  gap: 0;
+  min-height: calc(7 * 34px);
+  max-height: calc(7 * 34px);
   overflow: auto;
-  padding: 8px;
-  display: grid;
-  align-content: start;
-  gap: 3px;
+  padding-right: 2px;
 }
 
-.wv720-tree-row {
+.wv720-history-item {
+  width: 100%;
+  min-height: 34px;
+  height: 34px;
+  text-align: left;
+  padding: 4px 8px;
+  font: 600 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) 22px;
-  gap: 5px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+  white-space: nowrap;
+}
+
+.wv720-queue-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.wv720-queue-stripes {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-height: 100%;
+  justify-content: flex-end;
+}
+
+.wv720-queue-stripe {
+  width: 4px;
+  border-radius: 2px;
+  height: auto;
+}
+
+.wv720-tags-controls {
+  display: flex;
   align-items: center;
-  border-radius: 7px;
-  padding: 2px 0;
+  gap: 6px;
 }
 
-.wv720-tree-toggle,
-.wv720-tree-queue-toggle {
+.wv720-tags-nav-btn {
+  min-width: 34px;
+  min-height: 30px;
+  font: 700 0.92rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-tags-selected {
+  font: 700 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  margin-left: 6px;
+}
+
+.wv720-tagpool {
+  display: grid;
+  gap: 6px;
+}
+
+.wv720-tagpool-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wv720-tag-clear-inline {
+  margin-left: auto;
+}
+
+.wv720-nav-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 8px;
+}
+
+.wv720-menu-row,
+.wv720-article-row {
+  min-height: 0;
+}
+
+.wv720-nav-btn {
+  width: 100%;
+  min-height: 34px;
+  text-align: left;
+  padding: 6px 10px;
+  font: 600 0.92rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-home-nav-row {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+}
+
+.wv720-menu-label {
+  font: 700 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: left;
+  padding: 6px 8px;
+}
+
+.wv720-menu-toggle,
+.wv720-menu-toggle-spacer {
   width: 22px;
   height: 22px;
-  border: 1px solid #b8cabc;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #17301f;
-  font: 700 0.78rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-menu-toggle {
+  line-height: 1;
+  font: 700 0.9rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
   padding: 0;
   cursor: pointer;
 }
 
-.wv720-tree-toggle-spacer,
-.wv720-tree-queue-spacer {
-  width: 22px;
-  height: 22px;
+.wv720-menu-toggle-spacer {
   display: inline-block;
-}
-
-.wv720-tree-main {
-  width: 100%;
-  border: 1px solid #c1d2c6;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #17301f;
-  min-height: 30px;
-  text-align: left;
-  padding: 4px 8px;
-  font: 600 0.8rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
-  cursor: pointer;
-}
-
-.wv720-tree-main.active {
-  border-color: #6e9a7c;
-  background: #e6f1e8;
 }

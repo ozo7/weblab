@@ -5,11 +5,15 @@ import {
   resolveColorSchemes
 } from "./color-schemes.js";
 
+const ACTIVE_SCHEME_KEYS = new Set(["minty-premature"]);
+const FALLBACK_SCHEME_KEY = "minty-premature";
+
 export function createConfigurationObject(options) {
   const subscribers = new Set();
-  const defaultSchemeKey = BASE_COLOR_SCHEMES.some((scheme) => scheme.key === (options && options.defaultSchemeKey))
-    ? options.defaultSchemeKey
-    : "dark";
+  const defaultSchemeCandidate = options && options.defaultSchemeKey;
+  const defaultSchemeKey = typeof defaultSchemeCandidate === "string" && ACTIVE_SCHEME_KEYS.has(defaultSchemeCandidate)
+    ? defaultSchemeCandidate
+    : FALLBACK_SCHEME_KEY;
   const state = {
     colorSchemesVisible: false,
     selectedSchemeKey: defaultSchemeKey,
@@ -62,7 +66,7 @@ export function createConfigurationObject(options) {
   }
 
   function setSelectedScheme(key) {
-    if (!BASE_COLOR_SCHEMES.some((scheme) => scheme.key === key)) {
+    if (!BASE_COLOR_SCHEMES.some((scheme) => scheme.key === key) || !ACTIVE_SCHEME_KEYS.has(key)) {
       return false;
     }
     if (state.selectedSchemeKey === key) {
@@ -96,8 +100,14 @@ export function createConfigurationObject(options) {
       return;
     }
     state.colorSchemesVisible = Boolean(snapshot.colorSchemesVisible);
-    if (typeof snapshot.selectedSchemeKey === "string" && BASE_COLOR_SCHEMES.some((scheme) => scheme.key === snapshot.selectedSchemeKey)) {
+    if (
+      typeof snapshot.selectedSchemeKey === "string" &&
+      BASE_COLOR_SCHEMES.some((scheme) => scheme.key === snapshot.selectedSchemeKey) &&
+      ACTIVE_SCHEME_KEYS.has(snapshot.selectedSchemeKey)
+    ) {
       state.selectedSchemeKey = snapshot.selectedSchemeKey;
+    } else {
+      state.selectedSchemeKey = FALLBACK_SCHEME_KEY;
     }
     state.pastelBaseColor = normalizePastelBaseColor(snapshot.pastelBaseColor, state.pastelBaseColor);
     publish({ type: "load-snapshot" });

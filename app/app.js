@@ -1,5 +1,6 @@
 import { mountErrorIntoPane } from "../core/content.js";
 import { createSharedRuntimeSession } from "../core/shared-runtime.js";
+import { ensureColorSchemeStyleLoaded } from "../core/color-scheme-style.js";
 import { ensureStyleLoaded } from "../core/style-loader.js";
 import { createViewport1080 } from "../viewports/viewport-1080.js";
 
@@ -8,8 +9,10 @@ const host = document.getElementById("appViewportHost");
 const runtime = {
   profile: null,
   activeStyleNode: null,
+  activeColorSchemeStyleNode: null,
   activeViewport: null,
-  unbindDelegation: null
+  unbindDelegation: null,
+  unbindConfigurationStyle: null
 };
 
 const sharedRuntime = createSharedRuntimeSession({
@@ -30,6 +33,31 @@ async function loadProfiles() {
 async function ensureViewportStyle(styleFile) {
   const href = "../styles/" + styleFile;
   await ensureStyleLoaded(runtime, href);
+}
+
+async function applySelectedColorSchemeStyle() {
+  const configuration = sharedRuntime.getConfiguration();
+  if (!configuration || typeof configuration.readState !== "function") {
+    return;
+  }
+  const state = configuration.readState();
+  await ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey);
+}
+
+function wireColorSchemeStyleSelection() {
+  if (runtime.unbindConfigurationStyle) {
+    return;
+  }
+  const configuration = sharedRuntime.getConfiguration();
+  if (!configuration || typeof configuration.subscribe !== "function") {
+    return;
+  }
+  runtime.unbindConfigurationStyle = configuration.subscribe((event) => {
+    if (!event || (event.type !== "set-selected-scheme" && event.type !== "load-snapshot")) {
+      return;
+    }
+    applySelectedColorSchemeStyle().catch(() => {});
+  });
 }
 
 function mountViewport() {
@@ -70,6 +98,8 @@ async function start() {
 
   await sharedRuntime.ensureLoaded();
   await sharedRuntime.getSettingsStore().load();
+  await applySelectedColorSchemeStyle();
+  wireColorSchemeStyleSelection();
   mountViewport();
 
   const navigation = sharedRuntime.getNavigationObject();

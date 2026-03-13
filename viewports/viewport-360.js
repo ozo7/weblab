@@ -1,13 +1,5 @@
 import { createQueueCore } from "../core/queue-core.js";
-
-function createButton(label, className, onClick) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = className;
-  button.textContent = label;
-  button.addEventListener("click", onClick);
-  return button;
-}
+import { createButton, getDepthClass } from "../core/nav-rail-utils.js";
 
 function uniqueArticleOrder(topLevel, articleMap) {
   const ids = [];
@@ -62,6 +54,7 @@ export function createViewport360(options) {
 
   const defaultSession = {
     navOpen: false,
+    sidePanelOpen: false,
     activeScreen: null,
     tagsEnabled: false,
     tagChooserOpen: false,
@@ -71,6 +64,7 @@ export function createViewport360(options) {
   const session = settingsStore.getViewportSession("360", defaultSession);
   queueCore.loadSnapshot(session.queue);
   let navOpen = true;
+  let sidePanelOpen = session.sidePanelOpen === true;
   let activeScreen = session.activeScreen === "sitemap" || session.activeScreen === "queue" ? session.activeScreen : null;
   let tagsEnabled = session.tagsEnabled === true;
   let tagChooserOpen = tagsEnabled && session.tagChooserOpen === true;
@@ -79,34 +73,38 @@ export function createViewport360(options) {
   let sitemapClickTimer = null;
 
   host.innerHTML = [
-    '<section class="wv360-shell" data-nav="closed">',
+    '<section class="wv360-shell cs-shell" data-nav="closed">',
     '  <section class="wv360-nav-pane">',
     '    <div class="wv360-overlay-stack">',
-    '      <button type="button" class="wv360-overlay-action" data-action="sitemap">Sitemap</button>',
-    '      <button type="button" class="wv360-overlay-action" data-action="tags">Tags: hidden</button>',
-    '      <button type="button" class="wv360-overlay-action" data-action="queue">Selected Pages (0)</button>',
-    '      <button type="button" class="wv360-overlay-action wv360-close-half" data-action="close-nav">Close</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="sitemap">Sitemap</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="tags">Tags: hidden</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="queue">Selected Pages (0)</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-close-half" data-action="close-nav">Close</button>',
     "    </div>",
     "  </section>",
     '  <section class="wv360-content-pane">',
-    '    <section class="wv360-article-view">',
+    '    <section class="wv360-article-view cs-content-host">',
     '      <main id="pane2main"></main>',
     "    </section>",
     '    <div class="wv360-quick-nav">',
-    '      <button type="button" class="wv360-pill" data-action="home" aria-label="Home">⌂</button>',
-    '      <button type="button" class="wv360-pill" data-action="prev" aria-label="Previous"><</button>',
-    '      <button type="button" class="wv360-pill" data-action="next" aria-label="Next">></button>',
+    '      <button type="button" class="wv360-pill cs-floating-btn" data-action="home" aria-label="Home">⌂</button>',
+    '      <button type="button" class="wv360-pill cs-floating-btn" data-action="prev" aria-label="Previous"><</button>',
+    '      <button type="button" class="wv360-pill cs-floating-btn" data-action="next" aria-label="Next">></button>',
     "    </div>",
     '    <div class="wv360-tag-chooser" hidden></div>',
     '    <button type="button" class="wv360-tag-action" data-action="tag-anchor" hidden>Tags</button>',
     '    <button type="button" class="wv360-tag-action wv360-clear-all" data-action="clear-tags" hidden>Clear All</button>',
-    '    <button type="button" class="wv360-hamburger" data-action="open-nav" aria-label="Open navigation">☰</button>',
+    '    <button type="button" class="wv360-side-toggle cs-floating-btn" data-action="toggle-side-pane" aria-label="Open side pane"></button>',
+    '    <aside class="wv360-side-pane cs-rail" aria-label="Side pane">',
+    '      <div class="wv360-side-pane-scroll" data-role="side-menus"></div>',
+    "    </aside>",
+    '    <button type="button" class="wv360-hamburger cs-floating-btn" data-action="open-nav" aria-label="Open navigation">☰</button>',
     "  </section>",
     '  <section class="wv360-screen-layer" hidden aria-hidden="true">',
-    '    <header class="wv360-screen-head">',
-    '      <h2 class="wv360-screen-title"></h2>',
-    '      <button type="button" class="wv360-overlay-action wv360-screen-clear" data-action="clear-queue" hidden>Clear All</button>',
-    '      <button type="button" class="wv360-overlay-action wv360-close-half" data-action="close-screen">></button>',
+    '    <header class="wv360-screen-head cs-panel-head">',
+    '      <h2 class="wv360-screen-title cs-section-head"></h2>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-screen-clear" data-action="clear-queue" hidden>Clear All</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-close-half" data-action="close-screen">></button>',
     "    </header>",
     '    <div class="wv360-screen-body"></div>',
     "  </section>",
@@ -122,6 +120,7 @@ export function createViewport360(options) {
   const screenLayer = host.querySelector(".wv360-screen-layer");
   const screenTitle = host.querySelector(".wv360-screen-title");
   const screenBody = host.querySelector(".wv360-screen-body");
+  const sideMenus = host.querySelector('[data-role="side-menus"]');
   const clearQueueButton = host.querySelector('[data-action="clear-queue"]');
   const queueButton = host.querySelector('[data-action="queue"]');
   const tagsToggleButton = host.querySelector('[data-action="tags"]');
@@ -131,6 +130,7 @@ export function createViewport360(options) {
   function persistSession() {
     settingsStore.setViewportSession("360", {
       navOpen,
+      sidePanelOpen,
       activeScreen,
       tagsEnabled,
       tagChooserOpen,
@@ -143,6 +143,16 @@ export function createViewport360(options) {
   function setNavOpen(open) {
     navOpen = Boolean(open);
     shell.dataset.nav = navOpen ? "open" : "closed";
+    persistSession();
+  }
+
+  function setSidePanelOpen(open) {
+    sidePanelOpen = Boolean(open);
+    shell.dataset.sidePane = sidePanelOpen ? "open" : "closed";
+    const sideToggleButton = host.querySelector('[data-action="toggle-side-pane"]');
+    if (sideToggleButton) {
+      sideToggleButton.setAttribute("aria-label", sidePanelOpen ? "Close side pane" : "Open side pane");
+    }
     persistSession();
   }
 
@@ -172,7 +182,7 @@ export function createViewport360(options) {
       ? new Set(draftSelectedTags)
       : new Set(queueCore.getSelectedTags());
     queueCore.allTags.forEach((tag) => {
-      const chip = createButton(tag, "wv360-chooser-chip" + (selected.has(tag) ? " is-selected" : ""), () => {
+      const chip = createButton(tag, "wv360-chooser-chip cs-chip-btn" + (selected.has(tag) ? " is-selected active" : ""), () => {
         const hadTag = selected.has(tag);
         if (!(draftSelectedTags instanceof Set)) {
           draftSelectedTags = new Set(queueCore.getSelectedTags());
@@ -220,7 +230,7 @@ export function createViewport360(options) {
       }
       const button = createButton(
         String(index + 1) + ". " + article.title,
-        itemClassName + (navigation.readState().selectedArticleId === articleId ? " is-current" : "") + (queueCore.isQueued(articleId) ? " is-queued" : ""),
+        itemClassName + " cs-list-btn" + (navigation.readState().selectedArticleId === articleId ? " is-current active" : "") + (queueCore.isQueued(articleId) ? " is-queued" : ""),
         () => openArticle(articleId)
       );
       wrap.appendChild(button);
@@ -273,13 +283,13 @@ export function createViewport360(options) {
       if (canOpen) {
         main.type = "button";
       }
-      main.className = "wv360-sitemap-main";
+      main.className = "wv360-sitemap-main cs-list-btn";
       const title = node.type === "article"
         ? ((articleMap.get(node.articleId) && articleMap.get(node.articleId).title) || node.title || node.articleId)
         : (node.label && node.label.trim() ? node.label.trim() : "Section");
       main.textContent = title;
       if (canOpen && selectedArticleId === node.articleId && !queueCore.isQueued(node.articleId)) {
-        main.classList.add("is-current");
+        main.classList.add("is-current", "active");
       }
       if (canOpen && queueCore.isQueued(node.articleId)) {
         main.classList.add("is-queued");
@@ -292,7 +302,7 @@ export function createViewport360(options) {
       row.appendChild(main);
 
       if (node.type === "menu" && node.hasChildren) {
-        const expandButton = createButton(node.isExpanded ? "-" : "+", "wv360-sitemap-toggle", () => {
+        const expandButton = createButton(node.isExpanded ? "-" : "+", "wv360-sitemap-toggle cs-menu-toggle", () => {
           siteMap.toggleNode(node.nodeId);
           renderScreen();
           persistSession();
@@ -305,6 +315,108 @@ export function createViewport360(options) {
       }
 
       container.appendChild(row);
+    });
+  }
+
+  function getNodeTitle(node) {
+    if (typeof node.title === "string" && node.title.trim()) {
+      return node.title.trim();
+    }
+    if (typeof node.label === "string" && node.label.trim()) {
+      return node.label.trim();
+    }
+    return typeof node.articleId === "string" && node.articleId ? node.articleId : "Menu";
+  }
+
+  function createSideMenuRow(node) {
+    const row = document.createElement("div");
+    row.className = "cs-nav-row wv360-side-nav-row wv360-side-menu-row " + getDepthClass(node.depth);
+    row.style.paddingLeft = node.depth * 10 + "px";
+
+    if (node.hasChildren) {
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "wv360-side-menu-toggle cs-menu-toggle";
+      toggle.textContent = node.isExpanded ? "-" : "+";
+      toggle.setAttribute("aria-label", node.isExpanded ? "Collapse section" : "Expand section");
+      toggle.setAttribute("aria-expanded", node.isExpanded ? "true" : "false");
+      toggle.addEventListener("click", () => {
+        siteMap.toggleNode(node.nodeId);
+        renderAll();
+        persistSession();
+      });
+      row.appendChild(toggle);
+    } else {
+      const spacer = document.createElement("span");
+      spacer.className = "wv360-side-menu-toggle-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      row.appendChild(spacer);
+    }
+
+    if (node.isClickable) {
+      const button = createButton(
+        getNodeTitle(node),
+        "wv360-side-nav-btn cs-nav-btn" + (node.isActive ? " active" : ""),
+        () => {
+          navigation.setNavArea("menus");
+          const articleId = siteMap.openNode(node.nodeId);
+          if (articleId) {
+            openArticle(articleId);
+          }
+        }
+      );
+      row.appendChild(button);
+    } else {
+      const label = document.createElement("div");
+      label.className = "wv360-side-menu-label cs-menu-label";
+      label.textContent = getNodeTitle(node);
+      row.appendChild(label);
+    }
+
+    return row;
+  }
+
+  function createSideArticleRow(node) {
+    const isHomeRow = Boolean(homeArticleId) && node.depth === 0 && node.articleId === homeArticleId;
+    const row = document.createElement("div");
+    row.className = "cs-nav-row wv360-side-nav-row wv360-side-article-row " + getDepthClass(node.depth) + (isHomeRow ? " wv360-side-home-row" : "");
+    row.style.paddingLeft = node.depth * 10 + "px";
+
+    const spacer = document.createElement("span");
+    spacer.className = "wv360-side-menu-toggle-spacer";
+    spacer.setAttribute("aria-hidden", "true");
+    row.appendChild(spacer);
+
+    const button = createButton(
+      (isHomeRow ? "⌂ " : "") + getNodeTitle(node),
+      "wv360-side-nav-btn cs-nav-btn" + (node.isActive ? " active" : ""),
+      () => {
+        navigation.setNavArea("menus");
+        const articleId = siteMap.openNode(node.nodeId);
+        if (articleId) {
+          openArticle(articleId);
+        }
+      }
+    );
+    row.appendChild(button);
+
+    return row;
+  }
+
+  function renderSideMenus() {
+    if (typeof navigation.setNavArea === "function" && navigation.readState().navArea !== "menus") {
+      navigation.setNavArea("menus");
+    }
+    sideMenus.innerHTML = "";
+    const tree = siteMap.getTreeModel(navigation.readState().selectedArticleId);
+    tree.forEach((node) => {
+      if (node.type === "menu") {
+        sideMenus.appendChild(createSideMenuRow(node));
+        return;
+      }
+      if (node.type === "article") {
+        sideMenus.appendChild(createSideArticleRow(node));
+      }
     });
   }
 
@@ -353,6 +465,7 @@ export function createViewport360(options) {
     renderQuickNav();
     renderTagsUi();
     renderScreen();
+    renderSideMenus();
   }
 
   function closeScreen() {
@@ -466,6 +579,9 @@ export function createViewport360(options) {
       openArticle(around.nextId);
     }
   });
+  host.querySelector('[data-action="toggle-side-pane"]').addEventListener("click", () => {
+    setSidePanelOpen(!sidePanelOpen);
+  });
 
   const onKeyDown = (event) => {
     if (event.key === "Escape") {
@@ -475,12 +591,17 @@ export function createViewport360(options) {
       }
       if (activeScreen) {
         closeScreen();
+        return;
+      }
+      if (sidePanelOpen) {
+        setSidePanelOpen(false);
       }
     }
   };
   window.addEventListener("keydown", onKeyDown);
 
   setNavOpen(navOpen);
+  setSidePanelOpen(sidePanelOpen);
   renderAll();
 
   const startupArticleId = session.selectedArticleId && articleMap.has(session.selectedArticleId)

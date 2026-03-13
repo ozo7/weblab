@@ -1,5 +1,18 @@
 ## Recent Session Updates
 
+### Latest Updates (Shared Color Scheme Contract Across 1080/720/360)
+
+1. Added a shared color-scheme stylesheet loader `core/color-scheme-style.js` and wired it in app/lab startup so selected scheme CSS is loaded dynamically.
+2. Locked active selectable scheme to `minty-premature` in `Configuration` object while keeping other scheme buttons visible but disabled for staged rollout.
+3. Added dedicated shared scheme file `styles/colorschemes/minty-premature.css` and moved extracted visual skin rules into agnostic `cs-*` classes.
+4. Replaced viewport-coupled tree depth selectors with generic depth contract (`.cs-nav-row.is-depth-*`) used by all viewports.
+5. Increased nested tree darkening to 15% per depth and capped effective darkening at depth 4.
+6. Updated Home/Back icon rendering to icon+label spans and styled icons via shared class (`.cs-head-icon`) at 50% larger + bold.
+7. Migrated 1080 viewport to shared contract classes (`cs-shell`, `cs-content-host`, `cs-rail`, `cs-menu-*`, `cs-nav-btn`, `cs-chip-btn`, `cs-section-head`, `cs-preview-*`, etc.) and removed extracted visual literals from `styles/viewport-1080.css`.
+8. Migrated 720 viewport to the same shared contract classes and removed extracted visual literals from `styles/viewport-720.css` (keeping viewport-specific toggle/geometry styles local).
+9. Migrated 360 viewport to shared contract classes for side nav/sitemap/queue/chips/overlay actions and removed scheme-specific viewport selectors from shared scheme file.
+10. Normalized shared style contract so `styles/colorschemes/minty-premature.css` no longer depends on any `wv1080-*`, `wv720-*`, or `wv360-*` selectors.
+
 ### Latest Updates (Configuration + Shared Color System)
 
 1. Added object-based `Configuration` model: `core/configuration-object.js` with persisted state (`selectedSchemeKey`, `pastelBaseColor`, `colorSchemesVisible`) and API methods for scheme selection/toggle.

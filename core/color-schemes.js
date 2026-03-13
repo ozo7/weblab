@@ -58,6 +58,11 @@ export function getReadableTextColor(backgroundHex) {
 
 export const BASE_COLOR_SCHEMES = [
   {
+    key: "minty-premature",
+    label: "Minty premature",
+    preview: { surface: "#F8FCF8", layer: "#FFFFFF", text: "#17301F", border: "#B8CABC", interactive: "#E5F1E8", accent: "#7DA88A", placeholder: "#F1F8F2" }
+  },
+  {
     key: "terminal-mono",
     label: "Terminal Mono",
     preview: { surface: "#07120A", layer: "#020703", text: "#6CFF7D", border: "#2B6033", interactive: "#0D2312", accent: "#00FF66", placeholder: "#0B1A0E" }

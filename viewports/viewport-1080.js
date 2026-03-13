@@ -1,55 +1,6 @@
 import { createColorPicker } from "../core/color-picker.js";
 import { getReadableTextColor } from "../core/color-schemes.js";
-
-function createButton(label, className, onClick) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = className;
-  button.textContent = label;
-  button.addEventListener("click", onClick);
-  return button;
-}
-
-function parseColorChannels(color) {
-  const match = color && color.match(/rgba?\(([^)]+)\)/i);
-  if (!match) {
-    return null;
-  }
-  const values = match[1].split(",").slice(0, 3).map((value) => Number(value.trim()));
-  if (values.length !== 3 || values.some((value) => Number.isNaN(value))) {
-    return null;
-  }
-  return values;
-}
-
-function mixChannels(base, target, amount) {
-  return [
-    Math.round(base[0] + (target[0] - base[0]) * amount),
-    Math.round(base[1] + (target[1] - base[1]) * amount),
-    Math.round(base[2] + (target[2] - base[2]) * amount)
-  ];
-}
-
-function relativeLuminance(channels) {
-  const linear = channels.map((value) => {
-    const channel = value / 255;
-    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
-}
-
-function computeDepthBackground(rail, depth) {
-  if (depth <= 0) {
-    return "";
-  }
-  const fallback = [248, 252, 248];
-  const channels = parseColorChannels(getComputedStyle(rail).backgroundColor) || fallback;
-  const isLight = relativeLuminance(channels) >= 0.5;
-  const target = isLight ? [0, 0, 0] : [255, 255, 255];
-  const amount = Math.min(depth * 0.08, 0.28);
-  const mixed = mixChannels(channels, target, amount);
-  return "rgb(" + mixed.join(", ") + ")";
-}
+import { createButton, getDepthClass } from "../core/nav-rail-utils.js";
 
 export function createViewport1080(options) {
   const host = options.host;
@@ -62,23 +13,23 @@ export function createViewport1080(options) {
 
   host.innerHTML = [
     '<div class="wv1080-stage">',
-    '  <div class="wv1080-layout">',
-    '    <section class="wv1080-content-host" aria-label="Content viewport">',
+    '  <div class="wv1080-layout cs-shell">',
+    '    <section class="wv1080-content-host cs-content-host" aria-label="Content viewport">',
     '      <main id="pane2main"></main>',
     '    </section>',
-    '    <nav class="wv1080-rail" aria-label="Navigation rail">',
-    '      <div class="wv1080-rail-head">',
+    '    <nav class="wv1080-rail cs-rail" aria-label="Navigation rail">',
+    '      <div class="wv1080-rail-head cs-rail-head">',
     '        <div class="wv1080-rail-head-actions">',
-    '          <button type="button" class="wv1080-head-btn" data-action="home" aria-label="Home">⌂ Home</button>',
-    '          <button type="button" class="wv1080-head-btn" data-action="back" aria-label="Back">← Back</button>',
+    '          <button type="button" class="wv1080-head-btn cs-head-btn" data-action="home" aria-label="Home"><span class="cs-head-icon" aria-hidden="true">⌂</span><span>Home</span></button>',
+    '          <button type="button" class="wv1080-head-btn cs-head-btn" data-action="back" aria-label="Back"><span class="cs-head-icon" aria-hidden="true">←</span><span>Back</span></button>',
     '        </div>',
     '        <div class="wv1080-rail-menu-wrap">',
-    '          <button type="button" class="wv1080-rail-menu-btn" aria-label="Open rail menu" aria-haspopup="true" aria-expanded="false">☰</button>',
-    '          <div class="wv1080-rail-menu-list" hidden>',
-    '            <button type="button" class="wv1080-rail-menu-item active" data-mode="menus">menus / sitemap</button>',
-    '            <button type="button" class="wv1080-rail-menu-item" data-mode="tags">tags</button>',
-    '            <button type="button" class="wv1080-rail-menu-item" data-mode="history">history</button>',
-    '            <button type="button" class="wv1080-rail-menu-item" data-mode="configuration">configuration</button>',
+    '          <button type="button" class="wv1080-rail-menu-btn cs-menu-trigger" aria-label="Open rail menu" aria-haspopup="true" aria-expanded="false">☰</button>',
+    '          <div class="wv1080-rail-menu-list cs-menu-list" hidden>',
+    '            <button type="button" class="wv1080-rail-menu-item cs-menu-item active" data-mode="menus">menus / sitemap</button>',
+    '            <button type="button" class="wv1080-rail-menu-item cs-menu-item" data-mode="tags">tags</button>',
+    '            <button type="button" class="wv1080-rail-menu-item cs-menu-item" data-mode="history">history</button>',
+    '            <button type="button" class="wv1080-rail-menu-item cs-menu-item" data-mode="configuration">configuration</button>',
     "          </div>",
     "        </div>",
     "      </div>",
@@ -92,7 +43,6 @@ export function createViewport1080(options) {
 
   const pane = host.querySelector("#pane2main");
   const navTreeContainer = host.querySelector("#wv1080NavTree");
-  const rail = host.querySelector(".wv1080-rail");
   const railScroll = host.querySelector(".wv1080-rail-scroll");
   const headHomeButton = host.querySelector('[data-action="home"]');
   const headBackButton = host.querySelector('[data-action="back"]');
@@ -150,38 +100,38 @@ export function createViewport1080(options) {
     pane.style.background = safe(preview.surface, "#F8FCF8");
     pane.innerHTML = [
       '<div class="wv1080-config-preview-stage">',
-      '  <div class="wv1080-config-preview-card" style="background:' + safe(preview.surface, "#F8FCF8") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">',
+      '  <div class="wv1080-config-preview-card cs-preview-card" style="background:' + safe(preview.surface, "#F8FCF8") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">',
       '    <div class="wv1080-config-preview-top">',
-      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">menus / sitemap</span>',
-      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">☰</span>',
+      '      <span class="wv1080-config-preview-btn cs-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">menus / sitemap</span>',
+      '      <span class="wv1080-config-preview-btn cs-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">☰</span>',
       "    </div>",
       '    <div class="wv1080-config-preview-title">Theme Illustration: ' + selected.label + "</div>",
-      '    <div class="wv1080-config-preview-queue" style="background:' + safe(preview.layer, "#FFFFFF") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">',
-      '      <div class="wv1080-config-preview-qrow" style="border-color:' + safe(preview.border, "#B8CABC") + ';">',
+      '    <div class="wv1080-config-preview-queue cs-preview-queue" style="background:' + safe(preview.layer, "#FFFFFF") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">',
+      '      <div class="wv1080-config-preview-qrow cs-preview-qrow" style="border-color:' + safe(preview.border, "#B8CABC") + ';">',
       "        <span>hh-home</span>",
       '        <span class="wv1080-config-preview-stripe" style="background:' + safe(preview.accent, "#1E88E5") + ';"></span>',
       "      </div>",
-      '      <div class="wv1080-config-preview-qrow" style="border-color:' + safe(preview.border, "#B8CABC") + ';">',
+      '      <div class="wv1080-config-preview-qrow cs-preview-qrow" style="border-color:' + safe(preview.border, "#B8CABC") + ';">',
       "        <span>hh-seminare</span>",
       '        <span class="wv1080-config-preview-stripes"><i style="background:' + safe(preview.accent, "#1E88E5") + ';"></i><i style="background:' + safe(preview.interactive, "#E5F1E8") + ';"></i></span>',
       "      </div>",
-      '      <div class="wv1080-config-preview-qrow">',
+      '      <div class="wv1080-config-preview-qrow cs-preview-qrow">',
       "        <span>hh-kontakt</span>",
       '        <span class="wv1080-config-preview-stripe" style="background:' + safe(preview.accent, "#1E88E5") + ';"></span>',
       "      </div>",
       "    </div>",
       '    <div class="wv1080-config-preview-controls">',
-      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">&lt;</span>',
-      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">&gt;</span>',
+      '      <span class="wv1080-config-preview-btn cs-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">&lt;</span>',
+      '      <span class="wv1080-config-preview-btn cs-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">&gt;</span>',
       "      <span>Selected: 3</span>",
-      '      <span class="wv1080-config-preview-btn" style="margin-left:auto;background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + interactiveAltText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Clear</span>',
+      '      <span class="wv1080-config-preview-btn cs-preview-btn" style="margin-left:auto;background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + interactiveAltText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Clear</span>',
       "    </div>",
       '    <div class="wv1080-config-preview-tags">',
-      '      <span class="wv1080-config-preview-tag active" style="background:' + safe(preview.accent, "#1E88E5") + ";color:" + accentText + ';">Seminare</span>',
-      '      <span class="wv1080-config-preview-tag active" style="background:' + safe(preview.accent, "#1E88E5") + ";color:" + accentText + ';">Kontakt</span>',
-      '      <span class="wv1080-config-preview-tag" style="background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Audio</span>',
+      '      <span class="wv1080-config-preview-tag cs-preview-tag active" style="background:' + safe(preview.accent, "#1E88E5") + ";color:" + accentText + ';">Seminare</span>',
+      '      <span class="wv1080-config-preview-tag cs-preview-tag active" style="background:' + safe(preview.accent, "#1E88E5") + ";color:" + accentText + ';">Kontakt</span>',
+      '      <span class="wv1080-config-preview-tag cs-preview-tag" style="background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Audio</span>',
       "    </div>",
-      '    <div class="wv1080-config-preview-placeholder" style="background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Configuration preview only (no app behavior yet).</div>',
+      '    <div class="wv1080-config-preview-placeholder cs-preview-placeholder" style="background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Configuration preview only (no app behavior yet).</div>',
       "  </div>",
       "</div>"
     ].join("\n");
@@ -199,17 +149,13 @@ export function createViewport1080(options) {
 
   function createMenuRow(node) {
     const row = document.createElement("div");
-    row.className = "wv1080-nav-row wv1080-menu-row";
+    row.className = "cs-nav-row wv1080-nav-row wv1080-menu-row " + getDepthClass(node.depth);
     row.style.paddingLeft = node.depth * 10 + "px";
-    const background = computeDepthBackground(rail, node.depth);
-    if (background) {
-      row.style.backgroundColor = background;
-    }
 
     if (node.hasChildren) {
       const toggle = document.createElement("button");
       toggle.type = "button";
-      toggle.className = "wv1080-menu-toggle";
+      toggle.className = "wv1080-menu-toggle cs-menu-toggle";
       toggle.textContent = node.isExpanded ? "-" : "+";
       toggle.setAttribute("aria-label", node.isExpanded ? "Collapse section" : "Expand section");
       toggle.setAttribute("aria-expanded", node.isExpanded ? "true" : "false");
@@ -228,7 +174,7 @@ export function createViewport1080(options) {
     if (node.isClickable) {
       const button = createButton(
         getNodeTitle(node),
-        "wv1080-nav-btn" + (node.isActive ? " active" : ""),
+        "wv1080-nav-btn cs-nav-btn" + (node.isActive ? " active" : ""),
         () => {
           const articleId = siteMap.openNode(node.nodeId);
           if (articleId) {
@@ -239,7 +185,7 @@ export function createViewport1080(options) {
       row.appendChild(button);
     } else {
       const label = document.createElement("div");
-      label.className = "wv1080-menu-label";
+      label.className = "wv1080-menu-label cs-menu-label";
       label.textContent = getNodeTitle(node);
       row.appendChild(label);
     }
@@ -250,12 +196,8 @@ export function createViewport1080(options) {
   function createArticleRow(node) {
     const isHomeRow = Boolean(homeArticleId) && node.depth === 0 && node.articleId === homeArticleId;
     const row = document.createElement("div");
-    row.className = "wv1080-nav-row wv1080-article-row" + (isHomeRow ? " wv1080-home-nav-row" : "");
+    row.className = "cs-nav-row wv1080-nav-row wv1080-article-row " + getDepthClass(node.depth) + (isHomeRow ? " wv1080-home-nav-row" : "");
     row.style.paddingLeft = node.depth * 10 + "px";
-    const background = computeDepthBackground(rail, node.depth);
-    if (background) {
-      row.style.backgroundColor = background;
-    }
 
     const spacer = document.createElement("span");
     spacer.className = "wv1080-menu-toggle-spacer";
@@ -264,7 +206,7 @@ export function createViewport1080(options) {
 
     const button = createButton(
       (isHomeRow ? "⌂ " : "") + getNodeTitle(node),
-      "wv1080-nav-btn" + (node.isActive ? " active" : ""),
+      "wv1080-nav-btn cs-nav-btn" + (node.isActive ? " active" : ""),
       () => {
         const articleId = siteMap.openNode(node.nodeId);
         if (articleId) {
@@ -294,7 +236,7 @@ export function createViewport1080(options) {
       wrap.className = "wv1080-tags-pane";
 
       const head = document.createElement("div");
-      head.className = "wv1080-history-head";
+      head.className = "wv1080-history-head cs-section-head";
       head.textContent = "Pages to read, selected by tags:";
       wrap.appendChild(head);
 
@@ -311,14 +253,14 @@ export function createViewport1080(options) {
       queueList.className = "wv1080-history-list wv1080-tags-queue-list";
       if (!queue.length) {
         const empty = document.createElement("div");
-        empty.className = "wv1080-history-empty";
+        empty.className = "wv1080-history-empty cs-empty";
         empty.textContent = "No selected pages.";
         queueList.appendChild(empty);
       } else {
         queue.forEach((articleId) => {
           const item = document.createElement("button");
           item.type = "button";
-          item.className = "wv1080-history-item" + (articleId === selectedId ? " active" : "");
+          item.className = "wv1080-history-item cs-list-btn" + (articleId === selectedId ? " active" : "");
           item.addEventListener("click", () => navigation.openArticleById(articleId));
 
           const selectedTagsFromPool = tagPool && typeof tagPool.getSelectedTagsForArticle === "function"
@@ -333,7 +275,7 @@ export function createViewport1080(options) {
           stripeWrap.className = "wv1080-queue-stripes";
           selectedTagsFromPool.forEach((tag) => {
             const stripe = document.createElement("span");
-            stripe.className = "wv1080-queue-stripe";
+            stripe.className = "wv1080-queue-stripe cs-queue-stripe";
             stripe.style.backgroundColor = selectedTagColors[tag] || "#111111";
             stripe.title = tag;
             stripeWrap.appendChild(stripe);
@@ -351,7 +293,7 @@ export function createViewport1080(options) {
         ? (currentIndex < queue.length - 1 ? queue[currentIndex + 1] : null)
         : (queue.length ? queue[0] : null);
 
-      const prevButton = createButton("<", "wv1080-tags-nav-btn", () => {
+      const prevButton = createButton("<", "wv1080-tags-nav-btn cs-mini-nav-btn", () => {
         if (prevId) {
           navigation.openArticleById(prevId);
         }
@@ -359,7 +301,7 @@ export function createViewport1080(options) {
       prevButton.disabled = !prevId;
       controls.appendChild(prevButton);
 
-      const nextButton = createButton(">", "wv1080-tags-nav-btn", () => {
+      const nextButton = createButton(">", "wv1080-tags-nav-btn cs-mini-nav-btn", () => {
         if (nextId) {
           navigation.openArticleById(nextId);
         }
@@ -368,7 +310,7 @@ export function createViewport1080(options) {
       controls.appendChild(nextButton);
 
       const selectedCount = document.createElement("div");
-      selectedCount.className = "wv1080-tags-selected";
+      selectedCount.className = "wv1080-tags-selected cs-section-head";
       selectedCount.textContent = "Selected: " + queue.length;
       controls.appendChild(selectedCount);
 
@@ -377,7 +319,7 @@ export function createViewport1080(options) {
           ? tagPool.getSelectedTags()
           : []
       );
-      const clearTags = createButton("Clear", "wv1080-tag-clear wv1080-tag-clear-inline", () => {
+      const clearTags = createButton("Clear", "wv1080-tag-clear wv1080-tag-clear-inline cs-chip-btn", () => {
         if (tagPool && typeof tagPool.clear === "function") {
           tagPool.clear();
         }
@@ -389,7 +331,7 @@ export function createViewport1080(options) {
       const tagWrap = document.createElement("div");
       tagWrap.className = "wv1080-tagpool";
       const tagHead = document.createElement("div");
-      tagHead.className = "wv1080-tagpool-head";
+      tagHead.className = "wv1080-tagpool-head cs-section-head";
       tagHead.textContent = "Tag pool:";
       tagWrap.appendChild(tagHead);
 
@@ -402,7 +344,7 @@ export function createViewport1080(options) {
         const color = selectedTagColors[tag];
         const tagButton = createButton(
           tag,
-          "wv1080-tag-btn" + (selectedTags.has(tag) ? " active" : ""),
+          "wv1080-tag-btn cs-chip-btn" + (selectedTags.has(tag) ? " active" : ""),
           () => {
             if (tagPool && typeof tagPool.toggleTag === "function") {
               tagPool.toggleTag(tag);
@@ -427,14 +369,14 @@ export function createViewport1080(options) {
       wrap.className = "wv1080-history";
 
       const head = document.createElement("div");
-      head.className = "wv1080-history-head";
+      head.className = "wv1080-history-head cs-section-head";
       head.textContent = "Your last visited pages (max. 20):";
       wrap.appendChild(head);
 
       const historyList = Array.isArray(runtime.navigationHistory) ? runtime.navigationHistory : [];
       if (!historyList.length) {
         const empty = document.createElement("div");
-        empty.className = "wv1080-history-empty";
+        empty.className = "wv1080-history-empty cs-empty";
         empty.textContent = "No visited pages yet.";
         wrap.appendChild(empty);
       } else {
@@ -443,7 +385,7 @@ export function createViewport1080(options) {
         historyList.forEach((articleId, index) => {
           const item = createButton(
             String(index + 1) + ". " + articleId,
-            "wv1080-history-item",
+            "wv1080-history-item cs-list-btn",
             () => navigation.openArticleById(articleId)
           );
           list.appendChild(item);
@@ -460,7 +402,7 @@ export function createViewport1080(options) {
       wrap.className = "wv1080-config-panel";
 
       const sectionTitle = document.createElement("div");
-      sectionTitle.className = "wv1080-history-head";
+      sectionTitle.className = "wv1080-history-head cs-section-head";
       sectionTitle.textContent = "Configuration";
       wrap.appendChild(sectionTitle);
 
@@ -469,7 +411,7 @@ export function createViewport1080(options) {
         : null;
       const toggle = createButton(
         "Color Schemes",
-        "wv1080-config-toggle",
+        "wv1080-config-toggle cs-action-btn",
         () => {
           if (configuration && typeof configuration.toggleColorSchemesVisible === "function") {
             configuration.toggleColorSchemesVisible();
@@ -486,14 +428,19 @@ export function createViewport1080(options) {
         const selectedKey = state && typeof state.selectedSchemeKey === "string" ? state.selectedSchemeKey : "";
         schemes.forEach((scheme) => {
           const preview = scheme && scheme.preview ? scheme.preview : {};
+          const isEnabled = scheme && scheme.key === "minty-premature";
           const button = document.createElement("button");
           button.type = "button";
-          button.className = "wv1080-config-scheme-btn" + (selectedKey === scheme.key ? " active" : "");
+          button.className = "wv1080-config-scheme-btn cs-scheme-btn" + (selectedKey === scheme.key ? " active" : "");
           button.textContent = scheme.label;
           button.style.background = preview.interactive || "#E5F1E8";
           button.style.color = getReadableTextColor(preview.interactive || "#E5F1E8");
           button.style.borderColor = preview.border || "#B8CABC";
+          button.disabled = !isEnabled;
           button.addEventListener("click", () => {
+            if (!isEnabled) {
+              return;
+            }
             if (configuration && typeof configuration.setSelectedScheme === "function") {
               configuration.setSelectedScheme(scheme.key);
             }
@@ -505,7 +452,7 @@ export function createViewport1080(options) {
         const pastelRow = document.createElement("div");
         pastelRow.className = "wv1080-config-pastel-row";
         const pastelLabel = document.createElement("label");
-        pastelLabel.className = "wv1080-config-pastel-label";
+        pastelLabel.className = "wv1080-config-pastel-label cs-section-head";
         pastelLabel.textContent = "Pastel base:";
         pastelRow.appendChild(pastelLabel);
         const initialHex = state && typeof state.pastelBaseColor === "string" ? state.pastelBaseColor : "#B76DC9";

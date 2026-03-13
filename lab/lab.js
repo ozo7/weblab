@@ -1,4 +1,5 @@
 import { mountErrorIntoPane } from "../core/content.js";
+import { ensureColorSchemeStyleLoaded } from "../core/color-scheme-style.js";
 import { createSharedRuntimeSession } from "../core/shared-runtime.js";
 import { ensureStyleLoaded } from "../core/style-loader.js";
 import { createViewport1080 } from "../viewports/viewport-1080.js";
@@ -28,7 +29,9 @@ const runtime = {
   profiles: null,
   activeViewportInstance: null,
   activeStyleNode: null,
+  activeColorSchemeStyleNode: null,
   unbindDelegation: null,
+  unbindConfigurationStyle: null,
   objectsPanelOpen: false,
   selectedObjectKey: "SiteMap",
   objectStateTimer: null,
@@ -42,6 +45,20 @@ const sharedRuntime = createSharedRuntimeSession({
     return runtime.activeViewportInstance ? runtime.activeViewportInstance.articlePane : null;
   }
 });
+
+function persistLabUiState() {
+  const settingsStore = sharedRuntime.getSettingsStore();
+  settingsStore.setObjectSnapshot("labUi", {
+    selectedProfileKey: sharedRuntime.runtimeState.activeViewport || null,
+    selectedObjectKey: runtime.selectedObjectKey || "SiteMap"
+  });
+  settingsStore.schedulePersist(120);
+}
+
+function normalizeObjectKey(value) {
+  const key = typeof value === "string" ? value : "";
+  return OBJECT_DEFS.some((definition) => definition.key === key) ? key : "SiteMap";
+}
 
 function safeStringify(value) {
   try {
@@ -91,6 +108,20 @@ async function ensureViewportStyle(styleFile) {
 async function ensureSharedRuntime() {
   await sharedRuntime.ensureLoaded();
   await sharedRuntime.getSettingsStore().load();
+  const configuration = sharedRuntime.getConfiguration();
+  if (configuration && typeof configuration.readState === "function") {
+    const state = configuration.readState();
+    await ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey);
+  }
+  if (!runtime.unbindConfigurationStyle && configuration && typeof configuration.subscribe === "function") {
+    runtime.unbindConfigurationStyle = configuration.subscribe((event) => {
+      if (!event || (event.type !== "set-selected-scheme" && event.type !== "load-snapshot")) {
+        return;
+      }
+      const state = configuration.readState();
+      ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey).catch(() => {});
+    });
+  }
 }
 
 function clearActiveViewport() {
@@ -105,7 +136,7 @@ function clearActiveViewport() {
 }
 
 function getProfileNavigation(profileKey) {
-  return profileKey === "1080"
+  return profileKey === "1080" || profileKey === "720" || profileKey === "360"
     ? sharedRuntime.getNavigationObject()
     : sharedRuntime.getNavigation();
 }
@@ -128,10 +159,11 @@ function createViewportInstance(profile) {
       host: dom.host,
       navigation,
       siteMap: sharedRuntime.getSiteMap(),
+      tagPool: sharedRuntime.getTagPool(),
+      pagingQueue: sharedRuntime.getPagingQueue(),
+      configuration: sharedRuntime.getConfiguration(),
       settingsStore: sharedRuntime.getSettingsStore(),
-      websiteTopLevel: sharedRuntime.runtimeState.website ? sharedRuntime.runtimeState.website.topLevel : [],
       articleMap: sharedRuntime.runtimeState.articleMap,
-      tagMap: sharedRuntime.runtimeState.tags,
       homeArticleId: sharedRuntime.getDefaultArticleId()
     });
   }
@@ -181,6 +213,7 @@ async function activateProfile(profileKey) {
     .forEach((button) => button.classList.toggle("active", button.getAttribute("data-profile") === profileKey));
 
   sharedRuntime.runtimeState.activeViewport = profileKey;
+  persistLabUiState();
 }
 
 function buildFullTreeFromWebsite(topLevel, selectedArticleIDs, expandedNodeIds) {
@@ -394,6 +427,7 @@ function renderObjectList() {
     button.textContent = (definition.label || definition.key) + (definition.active ? "" : " (inactive)");
     button.addEventListener("click", () => {
       runtime.selectedObjectKey = definition.key;
+      persistLabUiState();
       setObjectViewOpen(true);
       renderObjectList();
       renderObjectWorkspace();
@@ -565,7 +599,17 @@ function renderControls(defaultViewport) {
 async function start() {
   const profileConfig = await loadProfiles();
   runtime.profiles = profileConfig.profiles || {};
-  renderControls(profileConfig.defaultViewport || "1080");
+  await sharedRuntime.getSettingsStore().load();
+  const defaultViewport = profileConfig.defaultViewport || "1080";
+  const labUi = sharedRuntime.getSettingsStore().getObjectSnapshot("labUi", {
+    selectedProfileKey: defaultViewport,
+    selectedObjectKey: "SiteMap"
+  });
+  const selectedProfileKey = typeof labUi.selectedProfileKey === "string" && runtime.profiles[labUi.selectedProfileKey]
+    ? labUi.selectedProfileKey
+    : defaultViewport;
+  runtime.selectedObjectKey = normalizeObjectKey(labUi.selectedObjectKey);
+  renderControls(selectedProfileKey);
 }
 
 start().catch((error) => {
