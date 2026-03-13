@@ -1,0 +1,84 @@
+Matching2 Article Folder Check
+Input: /home/ozo/ais/weblab/zz-migration/matching2.txt
+Source root: /home/ozo/ais/webwriter/zz-exports
+Navigation source: /home/ozo/ais/weblab/zz-migration/navigation-info-localhost-8081.json
+
+Total IDs: 30
+Folder Found: 30
+Folder Missing: 0
+Navigation OK: 30
+Navigation NO: 0
+
+Navigation Status:
+OK hh-alle-termine
+OK hh-home
+OK hh-kontakt
+OK hh-schungit
+OK hh-schungit-erfahrungsberichte
+OK hh-seminare
+OK hh-seminare-russische-heilweisen-i
+OK hh-seminare-russland-schungit
+OK hh-ueber-mich
+OK hh-ueber-mich-vereinsstatuten
+OK hh-2017-intuitives-lernen-fuer-kinder
+OK hh-aurasehen
+OK hh-ausflug-extern-steine-u-wewelsburg
+OK hh-bosnien-pyramiden-und-heilsicht
+OK hh-heilsichtkurs
+OK hh-hypnose
+OK hh-ptc1
+OK hh-ptc2
+OK hh-runen1
+OK hh-runen2
+OK hh-russische-heilweisen-i-haeufige-fragen
+OK hh-russische-heilweisen-ii
+OK hh-russland-schungit-reisebericht-heilreise-karelien
+OK hh-seminare-ausflug-schungitraum-heilsichtkurs-germanische-kraftplatze
+OK hh-teilnehmerstimmen
+OK hh-thailand
+OK hh-ueber-mich-f-rdermitglied-werden
+OK hh-schungitraum
+OK hh-steuerungen
+OK hh-steuerungen-2
+
+Folder Found IDs:
+- hh-alle-termine
+- hh-home
+- hh-kontakt
+- hh-schungit
+- hh-schungit-erfahrungsberichte
+- hh-seminare
+- hh-seminare-russische-heilweisen-i
+- hh-seminare-russland-schungit
+- hh-ueber-mich
+- hh-ueber-mich-vereinsstatuten
+- hh-2017-intuitives-lernen-fuer-kinder
+- hh-aurasehen
+- hh-ausflug-extern-steine-u-wewelsburg
+- hh-bosnien-pyramiden-und-heilsicht
+- hh-heilsichtkurs
+- hh-hypnose
+- hh-ptc1
+- hh-ptc2
+- hh-runen1
+- hh-runen2
+- hh-russische-heilweisen-i-haeufige-fragen
+- hh-russische-heilweisen-ii
+- hh-russland-schungit-reisebericht-heilreise-karelien
+- hh-seminare-ausflug-schungitraum-heilsichtkurs-germanische-kraftplatze
+- hh-teilnehmerstimmen
+- hh-thailand
+- hh-ueber-mich-f-rdermitglied-werden
+- hh-schungitraum
+- hh-steuerungen
+- hh-steuerungen-2
+
+Folder Missing IDs:
+(none)
+
+website.json: generated at /home/ozo/ais/weblab/zz-export/website.json
+article fragments generated: 30
+target articles dir: /home/ozo/ais/weblab/zz-export/articles
+copied: /home/ozo/ais/webwriter/zz-exports/hh-alle-termine/export.js -> /home/ozo/ais/weblab/zz-export/export.js
+copied: /home/ozo/ais/webwriter/zz-exports/hh-alle-termine/export.css -> /home/ozo/ais/weblab/zz-export/export.css
+copied: /home/ozo/ais/webwriter/zz-exports/aa-tables -> /home/ozo/ais/weblab/zz-export/aa-tables

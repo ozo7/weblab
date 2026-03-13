@@ -1,0 +1,20 @@
+{
+  "default": {
+    "needsHydrate": false,
+    "hooks": []
+  },
+  "articles": {
+    "hh-steuerungen-2": {
+      "needsHydrate": true,
+      "hooks": [
+        "webwriterAudio"
+      ]
+    },
+    "hh-steuerungen": {
+      "needsHydrate": true,
+      "hooks": [
+        "webwriterAudio"
+      ]
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "title": "Generated from navigation-info-localhost-8081.json",
+    "landingArticleId": "hh-alle-termine"
+  },
+  "topLevel": [
+    {
+      "type": "article",
+      "articleId": "hh-home",
+      "title": "Home"
+    },
+    {
+      "type": "menu",
+      "label": "Über uns",
+      "articleId": "hh-ueber-mich",
+      "title": "Über uns",
+      "children": [
+        {
+          "type": "article",
+          "articleId": "hh-ueber-mich-vereinsstatuten",
+          "title": "Vereinsstatuten"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-ueber-mich-f-rdermitglied-werden",
+          "title": "Fördermitglied werden"
+        }
+      ]
+    },
+    {
+      "type": "menu",
+      "label": "Seminare und Seminarreisen",
+      "articleId": "hh-seminare",
+      "title": "Seminare und Seminarreisen",
+      "children": [
+        {
+          "type": "menu",
+          "label": "Russische Heilweisen I",
+          "articleId": "hh-seminare-russische-heilweisen-i",
+          "title": "Russische Heilweisen I",
+          "children": [
+            {
+              "type": "article",
+              "articleId": "hh-russische-heilweisen-i-haeufige-fragen",
+              "title": "Häufige Fragen"
+            }
+          ]
+        },
+        {
+          "type": "article",
+          "articleId": "hh-russische-heilweisen-ii",
+          "title": "Russische Heilweisen II"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-runen1",
+          "title": "Runen und ihre heilsame Anwendung I"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-runen2",
+          "title": "Runen und ihre heilsame Anwendung II"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-ptc1",
+          "title": "Philippinische Trancechirurgie 1"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-ptc2",
+          "title": "Philippinische Trancechirurgie 2"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-heilsichtkurs",
+          "title": "Heilsichtkurs"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-aurasehen",
+          "title": "Aura sehen"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-hypnose",
+          "title": "Hypnose"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-teilnehmerstimmen",
+          "title": "Teilnehmerstimmen"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-2017-intuitives-lernen-fuer-kinder",
+          "title": "Intuitives Lernen für Kinder"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-thailand",
+          "title": "Thailand"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-bosnien-pyramiden-und-heilsicht",
+          "title": "Bosnien - Pyramiden und Heilsicht"
+        },
+        {
+          "type": "menu",
+          "label": "Seminarreise Karelien, Russland - Schungit",
+          "articleId": "hh-seminare-russland-schungit",
+          "title": "Seminarreise Karelien, Russland - Schungit",
+          "children": [
+            {
+              "type": "article",
+              "articleId": "hh-russland-schungit-reisebericht-heilreise-karelien",
+              "title": "Reisebericht"
+            }
+          ]
+        },
+        {
+          "type": "article",
+          "articleId": "hh-ausflug-extern-steine-u-wewelsburg",
+          "title": "Ausflug - Extern Steine u. Wewelsburg"
+        },
+        {
+          "type": "article",
+          "articleId": "hh-seminare-ausflug-schungitraum-heilsichtkurs-germanische-kraftplatze",
+          "title": "Ausflug - Schungitraum, Heilsichtkurs, Kraftplätze"
+        }
+      ]
+    },
+    {
+      "type": "menu",
+      "label": "Schungit",
+      "articleId": "hh-schungit",
+      "title": "Schungit",
+      "children": [
+        {
+          "type": "article",
+          "articleId": "hh-schungit-erfahrungsberichte",
+          "title": "Erfahrungsberichte"
+        }
+      ]
+    },
+    {
+      "type": "article",
+      "articleId": "hh-schungitraum",
+      "title": "Schungit Raum"
+    },
+    {
+      "type": "article",
+      "articleId": "hh-kontakt",
+      "title": "Kontakt"
+    },
+    {
+      "type": "article",
+      "articleId": "hh-alle-termine",
+      "title": "Alle Termine"
+    },
+    {
+      "type": "article",
+      "articleId": "hh-steuerungen",
+      "title": "Steuerungen"
+    },
+    {
+      "type": "article",
+      "articleId": "hh-steuerungen-2",
+      "title": "Steuerungen 2"
+    }
+  ]
+}

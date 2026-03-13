@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weblab App</title>
+  <link rel="stylesheet" href="../styles/all.css">
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      background: #e7efe8;
+      font: 400 15px/1.4 "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    #appViewportHost {
+      margin: 0;
+      border: 1px solid #bfcfc3;
+      border-radius: 12px;
+      background: #f9fcf9;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="appViewportHost" aria-label="App viewport"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

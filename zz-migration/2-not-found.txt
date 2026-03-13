@@ -1,0 +1,2 @@
+hh-ueber-mich-f-rdermitglied-werden	http://127.0.0.1:8000/images/AntragFoerderMitglied.pdf
+hh-ueber-mich-vereinsstatuten	http://127.0.0.1:8000/images/Vereinsregisterauszug.pdf

@@ -1,0 +1,327 @@
+{
+  "origin": {
+    "title": "Home",
+    "url": "http://localhost:8081/",
+    "type": "root",
+    "has_content": true
+  },
+  "navigation_titles_detected": 0,
+  "note": "* marks a navigation title: a branching menu node without substantive page content detected at its target URL.",
+  "tree": [
+    {
+      "title": "Home",
+      "url": "http://localhost:8081/",
+      "children": [],
+      "page_status": "ok",
+      "has_content": true,
+      "content_length": 998,
+      "type": "leaf",
+      "navigation_title": false
+    },
+    {
+      "title": "Über uns",
+      "url": "http://localhost:8081/ueber-mich.html",
+      "children": [
+        {
+          "title": "Vereinsstatuten",
+          "url": "http://localhost:8081/ueber-mich/vereinsstatuten.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 18180,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Fördermitglied werden",
+          "url": "http://localhost:8081/ueber-mich/fördermitglied-werden.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 1302,
+          "type": "leaf",
+          "navigation_title": false
+        }
+      ],
+      "page_status": "ok",
+      "has_content": true,
+      "content_length": 2091,
+      "type": "node",
+      "navigation_title": false
+    },
+    {
+      "title": "Seminare und Seminarreisen",
+      "url": "http://localhost:8081/seminare.html",
+      "children": [
+        {
+          "title": "Russische Heilweisen I",
+          "url": "http://localhost:8081/seminare/russische-heilweisen-i.html",
+          "children": [
+            {
+              "title": "Häufige Fragen",
+              "url": "http://localhost:8081/seminare/russische-heilweisen-i/haeufige-fragen.html",
+              "children": [],
+              "page_status": "ok",
+              "has_content": true,
+              "content_length": 1416,
+              "type": "leaf",
+              "navigation_title": false
+            }
+          ],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 3620,
+          "type": "node",
+          "navigation_title": false
+        },
+        {
+          "title": "Russische Heilweisen II",
+          "url": "http://localhost:8081/seminare/russische-heilweisen-ii.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 1478,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Runen und ihre heilsame Anwendung I",
+          "url": "http://localhost:8081/seminare/runische-heilweisen.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 3734,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Runen und ihre heilsame Anwendung II",
+          "url": "http://localhost:8081/seminare/runische-heilweisen-2.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 2049,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Philippinische Trancechirurgie 1",
+          "url": "http://localhost:8081/seminare/philippinische-trancechirurgie.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 1963,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Philippinische Trancechirurgie 2",
+          "url": "http://localhost:8081/seminare/philippinische-trancechirurgie-2.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 64,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Heilsichtkurs",
+          "url": "http://localhost:8081/seminare/heilsichtkurs.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 1608,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Aura sehen",
+          "url": "http://localhost:8081/seminare/aura-sehen-intuitive-wahrnehmung.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 2754,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Hypnose",
+          "url": "http://localhost:8081/seminare/hypnose-ausbildung.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 5380,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Teilnehmerstimmen",
+          "url": "http://localhost:8081/seminare/teilnehmerstimmen.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 44172,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Intuitives Lernen für Kinder",
+          "url": "http://localhost:8081/seminare/2017-intuitives-lernen-fuer-kinder.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 3948,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Thailand",
+          "url": "http://localhost:8081/seminare/thailand.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 4170,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Bosnien - Pyramiden und Heilsicht",
+          "url": "http://localhost:8081/seminare/bosnien-pyramiden-und-heilsicht.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 4735,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Seminarreise Karelien, Russland - Schungit",
+          "url": "http://localhost:8081/seminare/russland-schungit.html",
+          "children": [
+            {
+              "title": "Erfahrungsberichte",
+              "url": "http://localhost:8081/seminare/russland-schungit/erfahrungsberichte.html",
+              "children": [],
+              "page_status": "404",
+              "has_content": false,
+              "content_length": 0,
+              "type": "leaf",
+              "navigation_title": false
+            },
+            {
+              "title": "Reisebericht",
+              "url": "http://localhost:8081/seminare/russland-schungit/reisebericht-heilreise-karelien.html",
+              "children": [],
+              "page_status": "ok",
+              "has_content": true,
+              "content_length": 2787,
+              "type": "leaf",
+              "navigation_title": false
+            }
+          ],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 3193,
+          "type": "node",
+          "navigation_title": false
+        },
+        {
+          "title": "Ausflug - Extern Steine u. Wewelsburg",
+          "url": "http://localhost:8081/seminare/ausflug-extern-steine-u-wewelsburg.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 2922,
+          "type": "leaf",
+          "navigation_title": false
+        },
+        {
+          "title": "Ausflug - Schungitraum, Heilsichtkurs, Kraftplätze",
+          "url": "http://localhost:8081/seminare/ausflug-schungitraum,-heilsichtkurs,-germanische-kraftplätze.html",
+          "children": [],
+          "page_status": "404",
+          "has_content": false,
+          "content_length": 0,
+          "type": "leaf",
+          "navigation_title": false
+        }
+      ],
+      "page_status": "ok",
+      "has_content": true,
+      "content_length": 565,
+      "type": "node",
+      "navigation_title": false
+    },
+    {
+      "title": "Schungit",
+      "url": "http://localhost:8081/schungit.html",
+      "children": [
+        {
+          "title": "Erfahrungsberichte",
+          "url": "http://localhost:8081/schungit/erfahrungsberichte.html",
+          "children": [],
+          "page_status": "ok",
+          "has_content": true,
+          "content_length": 3934,
+          "type": "leaf",
+          "navigation_title": false
+        }
+      ],
+      "page_status": "ok",
+      "has_content": true,
+      "content_length": 1326,
+      "type": "node",
+      "navigation_title": false
+    },
+    {
+      "title": "Schungit Raum",
+      "url": "http://localhost:8081/schungit-raum.html",
+      "children": [],
+      "page_status": "ok",
+      "has_content": true,
+      "content_length": 3063,
+      "type": "leaf",
+      "navigation_title": false
+    },
+    {
+      "title": "Kontakt",
+      "url": "http://localhost:8081/kontakt.html",
+      "children": [],
+      "page_status": "ok",
+      "has_content": false,
+      "content_length": 0,
+      "type": "leaf",
+      "navigation_title": false
+    },
+    {
+      "title": "Alle Termine",
+      "url": "http://localhost:8081/alle-termine.html",
+      "children": [],
+      "page_status": "ok",
+      "has_content": false,
+      "content_length": 0,
+      "type": "leaf",
+      "navigation_title": false
+    },
+    {
+      "title": "Steuerungen",
+      "url": "http://localhost:8081/steuerungen.html",
+      "children": [],
+      "page_status": "ok",
+      "has_content": true,
+      "content_length": 1200,
+      "type": "leaf",
+      "navigation_title": false
+    },
+    {
+      "title": "Steuerungen 2",
+      "url": "http://localhost:8081/steuerungen-2.html",
+      "children": [],
+      "page_status": "ok",
+      "has_content": true,
+      "content_length": 1200,
+      "type": "leaf",
+      "navigation_title": false
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+:root {
+  --lab-bg: #e7efe8;
+  --lab-panel: #f8fcf9;
+  --lab-line: #c8d8cc;
+  --lab-text: #183024;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: auto;
+  background: radial-gradient(circle at 20% 20%, #f3f8f4, var(--lab-bg));
+  color: var(--lab-text);
+  font: 400 15px/1.4 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.lab-shell {
+  min-height: 100vh;
+  min-width: 1320px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  column-gap: 12px;
+}
+
+.lab-stage {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.lab-frame {
+  border: 1px solid var(--lab-line);
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: auto;
+  min-height: 80vh;
+}
+
+.lab-viewport-host {
+  margin: 0;
+  border: 1px solid #bfcfc3;
+  border-radius: 12px;
+  background: #f9fcf9;
+  overflow: hidden;
+}
+
+.lab-controls {
+  border: 1px solid var(--lab-line);
+  border-radius: 12px;
+  background: var(--lab-panel);
+  padding: 12px;
+  position: sticky;
+  top: 14px;
+  height: fit-content;
+}
+
+.lab-controls h1 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.lab-viewport-buttons {
+  display: grid;
+  gap: 8px;
+}
+
+.lab-viewport-button {
+  border: 1px solid #b8cabb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17301f;
+  min-height: 36px;
+  text-align: left;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.lab-viewport-button.active {
+  border-color: #6e9a7c;
+  background: #e6f1e8;
+}
+
+.lab-viewport-button.stub::after {
+  content: " (stub)";
+  color: #5c7a65;
+}
+
+.lab-hint {
+  margin: 12px 0 0;
+  font-size: 0.86rem;
+  color: #4d6554;
+}

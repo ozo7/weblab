@@ -1,0 +1,8 @@
+# Codex project prompt overlay (generated).
+if [[ -f "$HOME/.bashrc" ]]; then
+  # shellcheck source=/dev/null
+  source "$HOME/.bashrc"
+fi
+_codex_prefix='\[\e[1;38;2;255;255;0m\]▌▌\[\e[0m\] '
+PS1="${_codex_prefix}${PS1}"
+unset _codex_prefix

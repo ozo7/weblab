@@ -1,0 +1,48 @@
+Matching Comparison (Processed Manual Tags)
+
+Source: /home/ozo/ais/webview-720/zz-migration/matching.txt
+Processing rule: if the same numeric prefix appears on one line in both unmatched sections, those two lines are treated as a manual match.
+Non-numeric tags such as `xx-` are left unresolved.
+
+Matching pairs
+- hh-alle-termine <-> Alle Termine (http://localhost:8081/alle-termine.html)
+- hh-home <-> Home (http://localhost:8081/)
+- hh-kontakt <-> Kontakt (http://localhost:8081/kontakt.html)
+- hh-schungit <-> Schungit (http://localhost:8081/schungit.html)
+- hh-schungit-erfahrungsberichte <-> Erfahrungsberichte (http://localhost:8081/schungit/erfahrungsberichte.html)
+- hh-seminare <-> Seminare und Seminarreisen (http://localhost:8081/seminare.html)
+- hh-seminare-russische-heilweisen-i <-> Russische Heilweisen I (http://localhost:8081/seminare/russische-heilweisen-i.html)
+- hh-seminare-russland-schungit <-> Seminarreise Karelien, Russland - Schungit (http://localhost:8081/seminare/russland-schungit.html)
+- hh-ueber-mich <-> Über uns (http://localhost:8081/ueber-mich.html)
+- hh-ueber-mich-vereinsstatuten <-> Vereinsstatuten (http://localhost:8081/ueber-mich/vereinsstatuten.html)
+- hh-2017-intuitives-lernen-fuer-kinder <-> Intuitives Lernen für Kinder (http://localhost:8081/seminare/2017-intuitives-lernen-fuer-kinder.html) -> expected hh-seminare-2017-intuitives-lernen-fuer-kinder [manual tag 1]
+- hh-aurasehen <-> Aura sehen (http://localhost:8081/seminare/aura-sehen-intuitive-wahrnehmung.html) -> expected hh-seminare-aura-sehen-intuitive-wahrnehmung [manual tag 2]
+- hh-ausflug-extern-steine-u-wewelsburg <-> Ausflug - Extern Steine u. Wewelsburg (http://localhost:8081/seminare/ausflug-extern-steine-u-wewelsburg.html) -> expected hh-seminare-ausflug-extern-steine-u-wewelsburg [manual tag 3]
+- hh-bosnien-pyramiden-und-heilsicht <-> Bosnien - Pyramiden und Heilsicht (http://localhost:8081/seminare/bosnien-pyramiden-und-heilsicht.html) -> expected hh-seminare-bosnien-pyramiden-und-heilsicht [manual tag 4]
+- hh-heilsichtkurs <-> Heilsichtkurs (http://localhost:8081/seminare/heilsichtkurs.html) -> expected hh-seminare-heilsichtkurs [manual tag 5]
+- hh-hypnose <-> Hypnose (http://localhost:8081/seminare/hypnose-ausbildung.html) -> expected hh-seminare-hypnose-ausbildung [manual tag 6]
+- hh-ptc1 <-> Philippinische Trancechirurgie 1 (http://localhost:8081/seminare/philippinische-trancechirurgie.html) -> expected hh-seminare-philippinische-trancechirurgie [manual tag 7]
+- hh-ptc2 <-> Philippinische Trancechirurgie 2 (http://localhost:8081/seminare/philippinische-trancechirurgie-2.html) -> expected hh-seminare-philippinische-trancechirurgie-2 [manual tag 8]
+- hh-runen1 <-> Runen und ihre heilsame Anwendung I (http://localhost:8081/seminare/runische-heilweisen.html) -> expected hh-seminare-runische-heilweisen [manual tag 9]
+- hh-runen2 <-> Runen und ihre heilsame Anwendung II (http://localhost:8081/seminare/runische-heilweisen-2.html) -> expected hh-seminare-runische-heilweisen-2 [manual tag 10]
+- hh-russische-heilweisen-i-haeufige-fragen <-> Häufige Fragen (http://localhost:8081/seminare/russische-heilweisen-i/haeufige-fragen.html) -> expected hh-seminare-russische-heilweisen-i-haeufige-fragen [manual tag 11]
+- hh-russische-heilweisen-ii <-> Russische Heilweisen II (http://localhost:8081/seminare/russische-heilweisen-ii.html) -> expected hh-seminare-russische-heilweisen-ii [manual tag 12]
+- hh-russland-schungit-reisebericht-heilreise-karelien <-> Reisebericht (http://localhost:8081/seminare/russland-schungit/reisebericht-heilreise-karelien.html) -> expected hh-seminare-russland-schungit-reisebericht-heilreise-karelien [manual tag 13]
+- hh-seminare-ausflug-schungitraum-heilsichtkurs-germanische-kraftplatze <-> Ausflug - Schungitraum, Heilsichtkurs, Kraftplätze (http://localhost:8081/seminare/ausflug-schungitraum,-heilsichtkurs,-germanische-kraftplätze.html) [manual tag 4041, recreated from archived source article 31]
+- hh-teilnehmerstimmen <-> Teilnehmerstimmen (http://localhost:8081/seminare/teilnehmerstimmen.html) -> expected hh-seminare-teilnehmerstimmen [manual tag 14]
+- hh-thailand <-> Thailand (http://localhost:8081/seminare/thailand.html) -> expected hh-seminare-thailand [manual tag 15]
+- hh-ueber-mich-f-rdermitglied-werden <-> Fördermitglied werden (http://localhost:8081/ueber-mich/fördermitglied-werden.html) -> expected hh-ueber-mich-fordermitglied-werden [manual tag 16]
+- hh-schungitraum <-> Schungit Raum (http://localhost:8081/schungit-raum.html) -> expected hh-schungit-raum [manual tag 20]
+
+- hh-steuerungen <-> Steuerungen (http://localhost:8081/steuerungen.html)
+- hh-steuerungen-2 <-> Steuerungen 2 (http://localhost:8081/steuerungen-2.html)
+
+Present in first and missing in second
+- xx- hh-test-heilkreis-intensiv
+- xx- hh-test-seminarreise-vision
+
+Present in second and missing in first
+404 - Erfahrungsberichte (http://localhost:8081/seminare/russland-schungit/erfahrungsberichte.html) -> expected hh-seminare-russland-schungit-erfahrungsberichte
+
+
+Totals: 30 matched, 2 only in first, 1 only in second.

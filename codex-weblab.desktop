@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Codex (weblab)
+Comment=Start Codex in /home/ozo/ais/weblab
+Exec=gnome-terminal --class=codex-weblab --title="CODEX: Lab | weblab" -- /bin/bash "/home/ozo/ais/weblab/codex-weblab-launch.sh"
+Path=/home/ozo/ais/weblab
+Icon=/home/ozo/ais/weblab/codex-weblab-icon.svg
+Terminal=false
+StartupWMClass=codex-weblab
+Categories=Development;Utility;
+StartupNotify=true

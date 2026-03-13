@@ -1,0 +1,32 @@
+{
+  "defaultViewport": "1080",
+  "profiles": {
+    "1080": {
+      "key": "1080",
+      "label": "1080px",
+      "width": 1080,
+      "height": 860,
+      "adapter": "viewport-1080",
+      "style": "viewport-1080.css",
+      "status": "active"
+    },
+    "720": {
+      "key": "720",
+      "label": "720px",
+      "width": 720,
+      "height": 860,
+      "adapter": "viewport-720",
+      "style": "viewport-720.css",
+      "status": "stub"
+    },
+    "360": {
+      "key": "360",
+      "label": "360px",
+      "width": 360,
+      "height": 740,
+      "adapter": "viewport-360",
+      "style": "viewport-360.css",
+      "status": "stub"
+    }
+  }
+}
