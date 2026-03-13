@@ -1,3 +1,9 @@
+#labViewportHost,
+#appViewportHost {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .wv1080-stage,
 .wv1080-layout,
 .wv1080-content-host,

@@ -1,3 +1,9 @@
+#labViewportHost,
+#appViewportHost {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .wv720-shell,
 .wv720-shell * {
   box-sizing: border-box;

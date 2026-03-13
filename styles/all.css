@@ -6,3 +6,9 @@ main {
   margin-left: 0;
   margin-right: 0;
 }
+
+#labViewportHost,
+#appViewportHost {
+  margin-left: 0;
+  margin-right: 0;
+}
