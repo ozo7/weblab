@@ -95,6 +95,75 @@ function stripEdgeWhitespace(node) {
   }
 }
 
+function isExternalOrSpecialUrl(value) {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value);
+}
+
+function normalizeLocalUrl(value) {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const original = value.trim();
+  if (!original || isExternalOrSpecialUrl(original)) {
+    return original;
+  }
+
+  const match = original.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/);
+  if (!match) {
+    return original;
+  }
+
+  const path = match[1] || "";
+  const query = match[2] || "";
+  const hash = match[3] || "";
+
+  const normalizedPath = path
+    .split("/")
+    .map((segment) => {
+      if (!segment || segment === "." || segment === "..") {
+        return segment;
+      }
+      try {
+        return decodeURIComponent(segment);
+      } catch (_) {
+        return segment;
+      }
+    })
+    .join("/");
+
+  return normalizedPath + query + hash;
+}
+
+function normalizeArticleAssetUrls(container) {
+  if (!container || typeof container.querySelectorAll !== "function") {
+    return;
+  }
+
+  const attributeTargets = [
+    { selector: "img[src]", attribute: "src" },
+    { selector: "source[src]", attribute: "src" },
+    { selector: "audio[src]", attribute: "src" },
+    { selector: "video[src]", attribute: "src" },
+    { selector: "video[poster]", attribute: "poster" },
+    { selector: "track[src]", attribute: "src" },
+    { selector: "a[href]", attribute: "href" },
+    { selector: "[data-src]", attribute: "data-src" }
+  ];
+
+  attributeTargets.forEach((target) => {
+    container.querySelectorAll(target.selector).forEach((node) => {
+      const current = node.getAttribute(target.attribute);
+      if (!current) {
+        return;
+      }
+      const normalized = normalizeLocalUrl(current);
+      if (normalized !== current) {
+        node.setAttribute(target.attribute, normalized);
+      }
+    });
+  });
+}
+
 export function extractPaneMain(html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const pane = doc.querySelector("#pane2main");
@@ -128,6 +197,7 @@ export function mountArticleIntoPane(articlePane, html) {
   }
   articlePane.className = extracted.className || "";
   articlePane.innerHTML = extracted.innerHTML;
+  normalizeArticleAssetUrls(articlePane);
   hydrateArticleRuntime();
 }
 

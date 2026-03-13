@@ -27,7 +27,7 @@ is_server_process() {
   local pid="$1"
   local cmd
   cmd="$(ps -p "$pid" -o args= 2>/dev/null || true)"
-  [[ "$cmd" == *"http.server"* ]]
+  [[ "$cmd" == *"node"* && "$cmd" == *"server.js"* ]]
 }
 
 port_in_use() {
@@ -84,7 +84,7 @@ start_server() {
   : > "$LOG_FILE"
   (
     cd "$ROOT_DIR"
-    setsid python3 -m http.server "$PORT" --bind "$HOST" >> "$LOG_FILE" 2>&1 < /dev/null &
+    setsid env WEBLAB_HOST="$HOST" WEBLAB_PORT="$PORT" node ./server.js >> "$LOG_FILE" 2>&1 < /dev/null &
     echo $! > "$PID_FILE"
   )
 
