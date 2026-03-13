@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tag Color Order Proposals (Static)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 18px;
+      font: 14px/1.4 "Trebuchet MS", "Segoe UI", sans-serif;
+      color: #17301f;
+      background: #f8fcf8;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 20px;
+    }
+    p {
+      margin: 0 0 14px;
+    }
+    .proposal {
+      border: 1px solid #cfdacf;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .proposal h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+    .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 86px;
+      min-height: 28px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      padding: 2px 10px;
+      font-weight: 700;
+    }
+    .dark { color: #111111; }
+    .light { color: #ffffff; }
+  </style>
+</head>
+<body>
+  <h1>Tag Color Orders (Static Proposals)</h1>
+  <p>One-time visual helper. Each proposal is an explicit order of the same 10 colors.</p>
+
+  <section class="proposal">
+    <h2>1. Max Contrast Alternating</h2>
+    <div class="swatches">
+      <span class="swatch light" style="background:#111111">1 #111111</span>
+      <span class="swatch dark" style="background:#FDD835">2 #FDD835</span>
+      <span class="swatch light" style="background:#1E88E5">3 #1E88E5</span>
+      <span class="swatch light" style="background:#E53935">4 #E53935</span>
+      <span class="swatch dark" style="background:#C0CA33">5 #C0CA33</span>
+      <span class="swatch light" style="background:#8E24AA">6 #8E24AA</span>
+      <span class="swatch light" style="background:#00ACC1">7 #00ACC1</span>
+      <span class="swatch light" style="background:#6D4C41">8 #6D4C41</span>
+      <span class="swatch light" style="background:#43A047">9 #43A047</span>
+      <span class="swatch dark" style="background:#FB8C00">10 #FB8C00</span>
+    </div>
+  </section>
+
+  <section class="proposal">
+    <h2>2. Warm/Cool Alternating</h2>
+    <div class="swatches">
+      <span class="swatch light" style="background:#111111">1 #111111</span>
+      <span class="swatch light" style="background:#1E88E5">2 #1E88E5</span>
+      <span class="swatch light" style="background:#E53935">3 #E53935</span>
+      <span class="swatch light" style="background:#00ACC1">4 #00ACC1</span>
+      <span class="swatch dark" style="background:#FB8C00">5 #FB8C00</span>
+      <span class="swatch light" style="background:#8E24AA">6 #8E24AA</span>
+      <span class="swatch light" style="background:#43A047">7 #43A047</span>
+      <span class="swatch dark" style="background:#FDD835">8 #FDD835</span>
+      <span class="swatch light" style="background:#6D4C41">9 #6D4C41</span>
+      <span class="swatch dark" style="background:#C0CA33">10 #C0CA33</span>
+    </div>
+  </section>
+
+  <section class="proposal">
+    <h2>3. Saturation First</h2>
+    <div class="swatches">
+      <span class="swatch light" style="background:#111111">1 #111111</span>
+      <span class="swatch light" style="background:#E53935">2 #E53935</span>
+      <span class="swatch light" style="background:#1E88E5">3 #1E88E5</span>
+      <span class="swatch light" style="background:#43A047">4 #43A047</span>
+      <span class="swatch dark" style="background:#FB8C00">5 #FB8C00</span>
+      <span class="swatch light" style="background:#8E24AA">6 #8E24AA</span>
+      <span class="swatch light" style="background:#00ACC1">7 #00ACC1</span>
+      <span class="swatch dark" style="background:#FDD835">8 #FDD835</span>
+      <span class="swatch dark" style="background:#C0CA33">9 #C0CA33</span>
+      <span class="swatch light" style="background:#6D4C41">10 #6D4C41</span>
+    </div>
+  </section>
+
+  <section class="proposal">
+    <h2>4. Light/Dark Ladder</h2>
+    <div class="swatches">
+      <span class="swatch light" style="background:#111111">1 #111111</span>
+      <span class="swatch dark" style="background:#FDD835">2 #FDD835</span>
+      <span class="swatch light" style="background:#1E88E5">3 #1E88E5</span>
+      <span class="swatch dark" style="background:#FB8C00">4 #FB8C00</span>
+      <span class="swatch light" style="background:#8E24AA">5 #8E24AA</span>
+      <span class="swatch dark" style="background:#C0CA33">6 #C0CA33</span>
+      <span class="swatch light" style="background:#E53935">7 #E53935</span>
+      <span class="swatch light" style="background:#00ACC1">8 #00ACC1</span>
+      <span class="swatch light" style="background:#43A047">9 #43A047</span>
+      <span class="swatch light" style="background:#6D4C41">10 #6D4C41</span>
+    </div>
+  </section>
+
+  <section class="proposal">
+    <h2>5. Balanced Mixed</h2>
+    <div class="swatches">
+      <span class="swatch light" style="background:#111111">1 #111111</span>
+      <span class="swatch light" style="background:#00ACC1">2 #00ACC1</span>
+      <span class="swatch light" style="background:#E53935">3 #E53935</span>
+      <span class="swatch dark" style="background:#C0CA33">4 #C0CA33</span>
+      <span class="swatch light" style="background:#8E24AA">5 #8E24AA</span>
+      <span class="swatch dark" style="background:#FB8C00">6 #FB8C00</span>
+      <span class="swatch light" style="background:#1E88E5">7 #1E88E5</span>
+      <span class="swatch light" style="background:#6D4C41">8 #6D4C41</span>
+      <span class="swatch dark" style="background:#FDD835">9 #FDD835</span>
+      <span class="swatch light" style="background:#43A047">10 #43A047</span>
+    </div>
+  </section>
+</body>
+</html>

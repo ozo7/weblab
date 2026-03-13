@@ -11,71 +11,12 @@ function uniqueStringList(values) {
   return out;
 }
 
-function flattenArticleOrder(topLevel, validArticleIds) {
-  const ordered = [];
-  const seen = new Set();
-
-  function add(articleId) {
-    if (typeof articleId !== "string" || seen.has(articleId)) {
-      return;
-    }
-    if (validArticleIds && !validArticleIds.has(articleId)) {
-      return;
-    }
-    seen.add(articleId);
-    ordered.push(articleId);
-  }
-
-  function walk(entries) {
-    if (!Array.isArray(entries)) {
-      return;
-    }
-    entries.forEach((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return;
-      }
-      if (typeof entry.articleId === "string") {
-        add(entry.articleId);
-      }
-      walk(entry.children);
-    });
-  }
-
-  walk(topLevel);
-  return ordered;
-}
-
-function invertTagMap(tagMap) {
-  const articleTags = new Map();
-  const source = tagMap && typeof tagMap === "object" ? tagMap : {};
-  Object.keys(source).forEach((tag) => {
-    const ids = Array.isArray(source[tag]) ? source[tag] : [];
-    ids.forEach((articleId) => {
-      if (typeof articleId !== "string") {
-        return;
-      }
-      if (!articleTags.has(articleId)) {
-        articleTags.set(articleId, []);
-      }
-      const tags = articleTags.get(articleId);
-      if (!tags.includes(tag)) {
-        tags.push(tag);
-      }
-    });
-  });
-  return articleTags;
-}
-
 export function createPagingQueue(options) {
-  const topLevel = Array.isArray(options && options.topLevel) ? options.topLevel : [];
   const articleMap = options && options.articleMap instanceof Map ? options.articleMap : new Map();
-  const tagPool = options && options.tagPool ? options.tagPool : null;
   const articleIdSet = new Set(articleMap.keys());
-  const defaultQueue = flattenArticleOrder(topLevel, articleIdSet);
-  const tagsByArticleId = invertTagMap(options && options.tagMap ? options.tagMap : {});
   const subscribers = new Set();
   const state = {
-    queue: defaultQueue.slice()
+    queue: []
   };
 
   function publish(event) {
@@ -90,8 +31,7 @@ export function createPagingQueue(options) {
 
   function readState() {
     return {
-      queue: state.queue.slice(),
-      defaultQueue: defaultQueue.slice()
+      queue: state.queue.slice()
     };
   }
 
@@ -151,31 +91,26 @@ export function createPagingQueue(options) {
     return addPage(articleId, "end");
   }
 
-  function rebuildFromTags() {
-    const selectedTags = tagPool && typeof tagPool.getSelectedTags === "function"
-      ? tagPool.getSelectedTags()
-      : [];
-    const tags = new Set(selectedTags);
-    if (!tags.size) {
-      reset();
+  function setPages(pageIds, options) {
+    const requested = normalizeQueue(pageIds);
+    const allowReorder = !options || options.allowReorder !== false;
+    if (allowReorder) {
+      state.queue = requested;
+      publish({ type: "set-pages", allowReorder: true });
       return state.queue.slice();
     }
-    const scored = defaultQueue
-      .map((articleId) => {
-        const articleTags = tagsByArticleId.get(articleId) || [];
-        let score = 0;
-        articleTags.forEach((tag) => {
-          if (tags.has(tag)) {
-            score += 1;
-          }
-        });
-        return { articleId, score };
-      })
-      .filter((entry) => entry.score > 0)
-      .sort((a, b) => b.score - a.score || defaultQueue.indexOf(a.articleId) - defaultQueue.indexOf(b.articleId))
-      .map((entry) => entry.articleId);
-    state.queue = normalizeQueue(scored);
-    publish({ type: "rebuild-from-tags", selectedTags: Array.from(tags) });
+
+    const requestedSet = new Set(requested);
+    const nextQueue = state.queue.filter((articleId) => requestedSet.has(articleId));
+    const present = new Set(nextQueue);
+    requested.forEach((articleId) => {
+      if (!present.has(articleId)) {
+        nextQueue.push(articleId);
+        present.add(articleId);
+      }
+    });
+    state.queue = nextQueue;
+    publish({ type: "set-pages", allowReorder: false });
     return state.queue.slice();
   }
 
@@ -185,7 +120,7 @@ export function createPagingQueue(options) {
   }
 
   function reset() {
-    state.queue = defaultQueue.slice();
+    state.queue = [];
     publish({ type: "reset" });
   }
 
@@ -199,7 +134,9 @@ export function createPagingQueue(options) {
     if (!snapshot || typeof snapshot !== "object") {
       return;
     }
-    state.queue = normalizeQueue(snapshot.queue || defaultQueue);
+    state.queue = Array.isArray(snapshot.queue)
+      ? normalizeQueue(snapshot.queue)
+      : [];
     publish({ type: "load-snapshot" });
   }
 
@@ -211,10 +148,10 @@ export function createPagingQueue(options) {
   return {
     getQueue,
     getAround,
+    setPages,
     addPage,
     removePage,
     togglePage,
-    rebuildFromTags,
     clear,
     reset,
     createSnapshot,

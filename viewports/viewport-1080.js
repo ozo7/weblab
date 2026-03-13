@@ -1,3 +1,6 @@
+import { createColorPicker } from "../core/color-picker.js";
+import { getReadableTextColor } from "../core/color-schemes.js";
+
 function createButton(label, className, onClick) {
   const button = document.createElement("button");
   button.type = "button";
@@ -52,6 +55,9 @@ export function createViewport1080(options) {
   const host = options.host;
   const navigation = options.navigation;
   const siteMap = options.siteMap;
+  const tagPool = options.tagPool || null;
+  const pagingQueue = options.pagingQueue || null;
+  const configuration = options.configuration || null;
   const homeArticleId = options.homeArticleId || null;
 
   host.innerHTML = [
@@ -61,12 +67,23 @@ export function createViewport1080(options) {
     '      <main id="pane2main"></main>',
     '    </section>',
     '    <nav class="wv1080-rail" aria-label="Navigation rail">',
+    '      <div class="wv1080-rail-head">',
+    '        <div class="wv1080-rail-head-actions">',
+    '          <button type="button" class="wv1080-head-btn" data-action="home" aria-label="Home">⌂ Home</button>',
+    '          <button type="button" class="wv1080-head-btn" data-action="back" aria-label="Back">← Back</button>',
+    '        </div>',
+    '        <div class="wv1080-rail-menu-wrap">',
+    '          <button type="button" class="wv1080-rail-menu-btn" aria-label="Open rail menu" aria-haspopup="true" aria-expanded="false">☰</button>',
+    '          <div class="wv1080-rail-menu-list" hidden>',
+    '            <button type="button" class="wv1080-rail-menu-item active" data-mode="menus">menus / sitemap</button>',
+    '            <button type="button" class="wv1080-rail-menu-item" data-mode="tags">tags</button>',
+    '            <button type="button" class="wv1080-rail-menu-item" data-mode="history">history</button>',
+    '            <button type="button" class="wv1080-rail-menu-item" data-mode="configuration">configuration</button>',
+    "          </div>",
+    "        </div>",
+    "      </div>",
     '      <div class="wv1080-rail-scroll">',
     '        <div id="wv1080NavTree"></div>',
-    '      </div>',
-    '      <div class="wv1080-rail-footer">',
-    '        <button type="button" class="wv1080-tab" disabled>Pages</button>',
-    '        <button type="button" class="wv1080-tab" disabled>Tags (inactive)</button>',
     '      </div>',
     '    </nav>',
     '  </div>',
@@ -76,6 +93,99 @@ export function createViewport1080(options) {
   const pane = host.querySelector("#pane2main");
   const navTreeContainer = host.querySelector("#wv1080NavTree");
   const rail = host.querySelector(".wv1080-rail");
+  const railScroll = host.querySelector(".wv1080-rail-scroll");
+  const headHomeButton = host.querySelector('[data-action="home"]');
+  const headBackButton = host.querySelector('[data-action="back"]');
+  const railMenuButton = host.querySelector(".wv1080-rail-menu-btn");
+  const railMenuList = host.querySelector(".wv1080-rail-menu-list");
+  const railMenuItems = Array.from(host.querySelectorAll(".wv1080-rail-menu-item"));
+  let fallbackRailMode = "menus";
+
+  function setRailMenuOpen(open) {
+    const expanded = Boolean(open);
+    railMenuList.hidden = !expanded;
+    railMenuButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+  }
+
+  function setRailMode(mode) {
+    const beforeState = typeof navigation.readState === "function" ? navigation.readState() : null;
+    const previousMode = beforeState && typeof beforeState.navArea === "string" ? beforeState.navArea : null;
+    const next = mode === "tags" || mode === "history" || mode === "menus" || mode === "configuration" ? mode : "menus";
+    if (typeof navigation.setNavArea === "function") {
+      navigation.setNavArea(next);
+    } else {
+      fallbackRailMode = next;
+    }
+    const navState = navigation.readState();
+    const railMode = navState.navArea === "tags" || navState.navArea === "history" || navState.navArea === "configuration"
+      ? navState.navArea
+      : fallbackRailMode;
+    railMenuItems.forEach((item) => {
+      item.classList.toggle("active", item.getAttribute("data-mode") === railMode);
+    });
+    if (previousMode === "configuration" && next !== "configuration") {
+      const currentId = navigation.readState().selectedArticleId;
+      if (currentId && typeof navigation.openArticleById === "function") {
+        navigation.openArticleById(currentId);
+      }
+    }
+    setRailMenuOpen(false);
+    render();
+  }
+
+  function renderConfigurationPreviewIntoPane() {
+    if (!configuration || typeof configuration.getSelectedScheme !== "function") {
+      return;
+    }
+    const selected = configuration.getSelectedScheme();
+    if (!selected || !selected.preview) {
+      return;
+    }
+    const preview = selected.preview;
+    const accentText = getReadableTextColor(preview.accent || "#888888");
+    const interactiveText = getReadableTextColor(preview.interactive || "#888888");
+    const interactiveAltText = getReadableTextColor(preview.placeholder || "#888888");
+    const safe = (value, fallback) => (typeof value === "string" && value ? value : fallback);
+    pane.className = "wv1080-config-preview-pane";
+    pane.style.background = safe(preview.surface, "#F8FCF8");
+    pane.innerHTML = [
+      '<div class="wv1080-config-preview-stage">',
+      '  <div class="wv1080-config-preview-card" style="background:' + safe(preview.surface, "#F8FCF8") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">',
+      '    <div class="wv1080-config-preview-top">',
+      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">menus / sitemap</span>',
+      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">☰</span>',
+      "    </div>",
+      '    <div class="wv1080-config-preview-title">Theme Illustration: ' + selected.label + "</div>",
+      '    <div class="wv1080-config-preview-queue" style="background:' + safe(preview.layer, "#FFFFFF") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">',
+      '      <div class="wv1080-config-preview-qrow" style="border-color:' + safe(preview.border, "#B8CABC") + ';">',
+      "        <span>hh-home</span>",
+      '        <span class="wv1080-config-preview-stripe" style="background:' + safe(preview.accent, "#1E88E5") + ';"></span>',
+      "      </div>",
+      '      <div class="wv1080-config-preview-qrow" style="border-color:' + safe(preview.border, "#B8CABC") + ';">',
+      "        <span>hh-seminare</span>",
+      '        <span class="wv1080-config-preview-stripes"><i style="background:' + safe(preview.accent, "#1E88E5") + ';"></i><i style="background:' + safe(preview.interactive, "#E5F1E8") + ';"></i></span>',
+      "      </div>",
+      '      <div class="wv1080-config-preview-qrow">',
+      "        <span>hh-kontakt</span>",
+      '        <span class="wv1080-config-preview-stripe" style="background:' + safe(preview.accent, "#1E88E5") + ';"></span>',
+      "      </div>",
+      "    </div>",
+      '    <div class="wv1080-config-preview-controls">',
+      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">&lt;</span>',
+      '      <span class="wv1080-config-preview-btn" style="background:' + safe(preview.interactive, "#E5F1E8") + ";color:" + interactiveText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">&gt;</span>',
+      "      <span>Selected: 3</span>",
+      '      <span class="wv1080-config-preview-btn" style="margin-left:auto;background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + interactiveAltText + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Clear</span>',
+      "    </div>",
+      '    <div class="wv1080-config-preview-tags">',
+      '      <span class="wv1080-config-preview-tag active" style="background:' + safe(preview.accent, "#1E88E5") + ";color:" + accentText + ';">Seminare</span>',
+      '      <span class="wv1080-config-preview-tag active" style="background:' + safe(preview.accent, "#1E88E5") + ";color:" + accentText + ';">Kontakt</span>',
+      '      <span class="wv1080-config-preview-tag" style="background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Audio</span>',
+      "    </div>",
+      '    <div class="wv1080-config-preview-placeholder" style="background:' + safe(preview.placeholder, "#EEF4EF") + ";color:" + safe(preview.text, "#17301F") + ";border-color:" + safe(preview.border, "#B8CABC") + ';">Configuration preview only (no app behavior yet).</div>',
+      "  </div>",
+      "</div>"
+    ].join("\n");
+  }
 
   function getNodeTitle(node) {
     if (typeof node.title === "string" && node.title.trim()) {
@@ -164,22 +274,260 @@ export function createViewport1080(options) {
     );
     row.appendChild(button);
 
-    if (isHomeRow) {
-      const backButton = document.createElement("button");
-      backButton.type = "button";
-      backButton.className = "wv1080-back-btn wv1080-back-inline";
-      backButton.textContent = "←";
-      backButton.setAttribute("aria-label", "Back");
-      backButton.disabled = navigation.readState().articleHistory.length === 0;
-      backButton.addEventListener("click", () => navigation.goBack());
-      row.appendChild(backButton);
-    }
-
     return row;
   }
 
   function render() {
     const runtime = navigation.readState();
+    const historyList = Array.isArray(runtime.navigationHistory) ? runtime.navigationHistory : [];
+    headBackButton.disabled = historyList.length === 0;
+
+    const railMode = runtime.navArea === "tags" || runtime.navArea === "history" || runtime.navArea === "configuration"
+      ? runtime.navArea
+      : fallbackRailMode;
+    railMenuItems.forEach((item) => {
+      item.classList.toggle("active", item.getAttribute("data-mode") === railMode);
+    });
+    railScroll.innerHTML = "";
+    if (railMode === "tags") {
+      const wrap = document.createElement("div");
+      wrap.className = "wv1080-tags-pane";
+
+      const head = document.createElement("div");
+      head.className = "wv1080-history-head";
+      head.textContent = "Pages to read, selected by tags:";
+      wrap.appendChild(head);
+
+      const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
+        ? pagingQueue.getQueue()
+        : [];
+      const selectedTagColors = tagPool && typeof tagPool.getSelectedTagColors === "function"
+        ? tagPool.getSelectedTagColors()
+        : {};
+      const selectedId = runtime.selectedArticleId;
+      const currentIndex = queue.indexOf(selectedId);
+      const hasCurrentInQueue = currentIndex >= 0;
+      const queueList = document.createElement("div");
+      queueList.className = "wv1080-history-list wv1080-tags-queue-list";
+      if (!queue.length) {
+        const empty = document.createElement("div");
+        empty.className = "wv1080-history-empty";
+        empty.textContent = "No selected pages.";
+        queueList.appendChild(empty);
+      } else {
+        queue.forEach((articleId) => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "wv1080-history-item" + (articleId === selectedId ? " active" : "");
+          item.addEventListener("click", () => navigation.openArticleById(articleId));
+
+          const selectedTagsFromPool = tagPool && typeof tagPool.getSelectedTagsForArticle === "function"
+            ? tagPool.getSelectedTagsForArticle(articleId)
+            : [];
+          const label = document.createElement("span");
+          label.className = "wv1080-queue-label";
+          label.textContent = articleId;
+          item.appendChild(label);
+
+          const stripeWrap = document.createElement("span");
+          stripeWrap.className = "wv1080-queue-stripes";
+          selectedTagsFromPool.forEach((tag) => {
+            const stripe = document.createElement("span");
+            stripe.className = "wv1080-queue-stripe";
+            stripe.style.backgroundColor = selectedTagColors[tag] || "#111111";
+            stripe.title = tag;
+            stripeWrap.appendChild(stripe);
+          });
+          item.appendChild(stripeWrap);
+          queueList.appendChild(item);
+        });
+      }
+      wrap.appendChild(queueList);
+
+      const controls = document.createElement("div");
+      controls.className = "wv1080-tags-controls";
+      const prevId = hasCurrentInQueue && currentIndex > 0 ? queue[currentIndex - 1] : null;
+      const nextId = hasCurrentInQueue
+        ? (currentIndex < queue.length - 1 ? queue[currentIndex + 1] : null)
+        : (queue.length ? queue[0] : null);
+
+      const prevButton = createButton("<", "wv1080-tags-nav-btn", () => {
+        if (prevId) {
+          navigation.openArticleById(prevId);
+        }
+      });
+      prevButton.disabled = !prevId;
+      controls.appendChild(prevButton);
+
+      const nextButton = createButton(">", "wv1080-tags-nav-btn", () => {
+        if (nextId) {
+          navigation.openArticleById(nextId);
+        }
+      });
+      nextButton.disabled = !nextId;
+      controls.appendChild(nextButton);
+
+      const selectedCount = document.createElement("div");
+      selectedCount.className = "wv1080-tags-selected";
+      selectedCount.textContent = "Selected: " + queue.length;
+      controls.appendChild(selectedCount);
+
+      const selectedTags = new Set(
+        tagPool && typeof tagPool.getSelectedTags === "function"
+          ? tagPool.getSelectedTags()
+          : []
+      );
+      const clearTags = createButton("Clear", "wv1080-tag-clear wv1080-tag-clear-inline", () => {
+        if (tagPool && typeof tagPool.clear === "function") {
+          tagPool.clear();
+        }
+      });
+      clearTags.disabled = selectedTags.size === 0;
+      controls.appendChild(clearTags);
+      wrap.appendChild(controls);
+
+      const tagWrap = document.createElement("div");
+      tagWrap.className = "wv1080-tagpool";
+      const tagHead = document.createElement("div");
+      tagHead.className = "wv1080-tagpool-head";
+      tagHead.textContent = "Tag pool:";
+      tagWrap.appendChild(tagHead);
+
+      const tags = tagPool && typeof tagPool.getAllTags === "function"
+        ? tagPool.getAllTags()
+        : [];
+      const tagList = document.createElement("div");
+      tagList.className = "wv1080-tagpool-list";
+      tags.forEach((tag) => {
+        const color = selectedTagColors[tag];
+        const tagButton = createButton(
+          tag,
+          "wv1080-tag-btn" + (selectedTags.has(tag) ? " active" : ""),
+          () => {
+            if (tagPool && typeof tagPool.toggleTag === "function") {
+              tagPool.toggleTag(tag);
+            }
+          }
+        );
+        if (color && selectedTags.has(tag)) {
+          tagButton.style.borderColor = color;
+          tagButton.style.backgroundColor = color;
+          tagButton.style.color = getReadableTextColor(color);
+        }
+        tagList.appendChild(tagButton);
+      });
+      tagWrap.appendChild(tagList);
+
+      wrap.appendChild(tagWrap);
+      railScroll.appendChild(wrap);
+      return;
+    }
+    if (railMode === "history") {
+      const wrap = document.createElement("div");
+      wrap.className = "wv1080-history";
+
+      const head = document.createElement("div");
+      head.className = "wv1080-history-head";
+      head.textContent = "Your last visited pages (max. 20):";
+      wrap.appendChild(head);
+
+      const historyList = Array.isArray(runtime.navigationHistory) ? runtime.navigationHistory : [];
+      if (!historyList.length) {
+        const empty = document.createElement("div");
+        empty.className = "wv1080-history-empty";
+        empty.textContent = "No visited pages yet.";
+        wrap.appendChild(empty);
+      } else {
+        const list = document.createElement("div");
+        list.className = "wv1080-history-list";
+        historyList.forEach((articleId, index) => {
+          const item = createButton(
+            String(index + 1) + ". " + articleId,
+            "wv1080-history-item",
+            () => navigation.openArticleById(articleId)
+          );
+          list.appendChild(item);
+        });
+        wrap.appendChild(list);
+      }
+
+      railScroll.appendChild(wrap);
+      return;
+    }
+    if (railMode === "configuration") {
+      renderConfigurationPreviewIntoPane();
+      const wrap = document.createElement("div");
+      wrap.className = "wv1080-config-panel";
+
+      const sectionTitle = document.createElement("div");
+      sectionTitle.className = "wv1080-history-head";
+      sectionTitle.textContent = "Configuration";
+      wrap.appendChild(sectionTitle);
+
+      const state = configuration && typeof configuration.readState === "function"
+        ? configuration.readState()
+        : null;
+      const toggle = createButton(
+        "Color Schemes",
+        "wv1080-config-toggle",
+        () => {
+          if (configuration && typeof configuration.toggleColorSchemesVisible === "function") {
+            configuration.toggleColorSchemesVisible();
+          }
+        }
+      );
+      wrap.appendChild(toggle);
+
+      const visible = Boolean(state && state.colorSchemesVisible);
+      if (visible) {
+        const schemeList = document.createElement("div");
+        schemeList.className = "wv1080-config-scheme-list";
+        const schemes = state && Array.isArray(state.schemes) ? state.schemes : [];
+        const selectedKey = state && typeof state.selectedSchemeKey === "string" ? state.selectedSchemeKey : "";
+        schemes.forEach((scheme) => {
+          const preview = scheme && scheme.preview ? scheme.preview : {};
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "wv1080-config-scheme-btn" + (selectedKey === scheme.key ? " active" : "");
+          button.textContent = scheme.label;
+          button.style.background = preview.interactive || "#E5F1E8";
+          button.style.color = getReadableTextColor(preview.interactive || "#E5F1E8");
+          button.style.borderColor = preview.border || "#B8CABC";
+          button.addEventListener("click", () => {
+            if (configuration && typeof configuration.setSelectedScheme === "function") {
+              configuration.setSelectedScheme(scheme.key);
+            }
+          });
+          schemeList.appendChild(button);
+        });
+        wrap.appendChild(schemeList);
+
+        const pastelRow = document.createElement("div");
+        pastelRow.className = "wv1080-config-pastel-row";
+        const pastelLabel = document.createElement("label");
+        pastelLabel.className = "wv1080-config-pastel-label";
+        pastelLabel.textContent = "Pastel base:";
+        pastelRow.appendChild(pastelLabel);
+        const initialHex = state && typeof state.pastelBaseColor === "string" ? state.pastelBaseColor : "#B76DC9";
+        const pickerHost = document.createElement("div");
+        pastelRow.appendChild(pickerHost);
+        createColorPicker({
+          host: pickerHost,
+          initialHex,
+          onChange(nextHex) {
+            if (configuration && typeof configuration.setPastelBaseColor === "function") {
+              configuration.setPastelBaseColor(nextHex);
+            }
+          }
+        });
+        wrap.appendChild(pastelRow);
+      }
+
+      railScroll.appendChild(wrap);
+      return;
+    }
+
+    railScroll.appendChild(navTreeContainer);
     const tree = siteMap.getTreeModel(runtime.selectedArticleId);
     navTreeContainer.innerHTML = "";
     tree.forEach((node) => {
@@ -198,14 +546,72 @@ export function createViewport1080(options) {
       render();
     }
   });
+  const unsubscribeTagPool = tagPool && typeof tagPool.subscribe === "function"
+    ? tagPool.subscribe(() => render())
+    : () => {};
+  const unsubscribePagingQueue = pagingQueue && typeof pagingQueue.subscribe === "function"
+    ? pagingQueue.subscribe(() => render())
+    : () => {};
+  const unsubscribeConfiguration = configuration && typeof configuration.subscribe === "function"
+    ? configuration.subscribe((event) => {
+      if (navigation.readState().navArea !== "configuration") {
+        return;
+      }
+      if (event && event.type === "set-pastel-base-color") {
+        renderConfigurationPreviewIntoPane();
+        return;
+      }
+      render();
+    })
+    : () => {};
 
-  render();
+  railMenuButton.addEventListener("click", () => {
+    setRailMenuOpen(railMenuList.hidden);
+  });
+  railMenuItems.forEach((item) => {
+    item.addEventListener("click", () => {
+      setRailMode(item.getAttribute("data-mode") || "menus");
+    });
+  });
+  headHomeButton.addEventListener("click", () => {
+    if (navigation.readState().navArea === "configuration") {
+      setRailMode("menus");
+    }
+    if (homeArticleId) {
+      navigation.openArticleById(homeArticleId);
+      return;
+    }
+    navigation.openHome();
+  });
+  headBackButton.addEventListener("click", () => {
+    if (navigation.readState().navArea === "configuration") {
+      setRailMode("menus");
+    }
+    navigation.goBack();
+  });
+  const onDocumentClick = (event) => {
+    if (!(event.target instanceof Node) || !host.contains(event.target)) {
+      setRailMenuOpen(false);
+      return;
+    }
+    const wrap = host.querySelector(".wv1080-rail-menu-wrap");
+    if (wrap && !wrap.contains(event.target)) {
+      setRailMenuOpen(false);
+    }
+  };
+  document.addEventListener("click", onDocumentClick);
+
+  setRailMode(navigation.readState().navArea || "menus");
 
   return {
     key: "1080",
     articlePane: pane,
     teardown() {
       unsubscribe();
+      unsubscribeTagPool();
+      unsubscribePagingQueue();
+      unsubscribeConfiguration();
+      document.removeEventListener("click", onDocumentClick);
       host.innerHTML = "";
     }
   };

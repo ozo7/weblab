@@ -11,12 +11,12 @@ import {
 } from "./content.js";
 import { createNavigationCore } from "./navigation-core.js";
 import { createNavigationObject } from "./navigation-object.js";
-import { createPagingHistory } from "./paging-history.js";
 import { createPagingQueue } from "./paging-queue.js";
 import { createInternalLinks } from "./internal-links.js";
 import { createSiteMap } from "./sitemap.js";
 import { createSettingsStore } from "./settings-store.js";
 import { createTagPool } from "./tag-pool.js";
+import { createConfigurationObject } from "./configuration-object.js";
 
 function flattenTopLevelArticleIds(topLevel) {
   const ids = [];
@@ -38,11 +38,80 @@ function flattenTopLevelArticleIds(topLevel) {
   return ids;
 }
 
+function normalizeHexColor(color) {
+  if (typeof color !== "string") {
+    return null;
+  }
+  const value = color.trim();
+  const shortHex = value.match(/^#([0-9a-f]{3})$/i);
+  if (shortHex) {
+    const parts = shortHex[1].split("");
+    return "#" + parts.map((part) => part + part).join("").toUpperCase();
+  }
+  const longHex = value.match(/^#([0-9a-f]{6})$/i);
+  if (longHex) {
+    return "#" + longHex[1].toUpperCase();
+  }
+  const rgb = value.match(/^rgba?\(([^)]+)\)$/i);
+  if (rgb) {
+    const parts = rgb[1].split(",").slice(0, 3).map((part) => Number(part.trim()));
+    if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
+      return null;
+    }
+    return "#" + parts.map((n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0")).join("").toUpperCase();
+  }
+  return null;
+}
+
+function collectThemeColorCandidates() {
+  if (typeof window === "undefined" || typeof getComputedStyle !== "function") {
+    return [];
+  }
+  const selectors = ["body", "#appViewportHost", "#labViewportHost"];
+  const props = ["backgroundColor", "color", "borderColor"];
+  const out = [];
+  selectors.forEach((selector) => {
+    const node = document.querySelector(selector);
+    if (!node) {
+      return;
+    }
+    const style = getComputedStyle(node);
+    props.forEach((prop) => {
+      const raw = style[prop];
+      const normalized = normalizeHexColor(raw);
+      if (normalized) {
+        out.push(normalized);
+      }
+    });
+  });
+  return out;
+}
+
+function derivePrevalentColor(candidates) {
+  const values = Array.isArray(candidates) ? candidates : [];
+  if (!values.length) {
+    return "#F8FCF8";
+  }
+  const counts = new Map();
+  values.forEach((value) => {
+    const key = normalizeHexColor(value);
+    if (!key) {
+      return;
+    }
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  if (!counts.size) {
+    return "#F8FCF8";
+  }
+  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0][0];
+}
+
 export function createSharedRuntimeSession(options) {
   const runtimeState = createRuntimeState();
   const getActivePane = options && typeof options.getActivePane === "function"
     ? options.getActivePane
     : () => null;
+  const useNavigationObject = Boolean(options && options.useNavigationObject);
 
   const runtime = {
     navigation: null,
@@ -51,8 +120,8 @@ export function createSharedRuntimeSession(options) {
       navigation: null,
       tagPool: null,
       pagingQueue: null,
-      pagingHistory: null,
-      internalLinks: null
+      internalLinks: null,
+      configuration: null
     },
     settingsStore: createSettingsStore(),
     articleRenderToken: 0,
@@ -73,6 +142,15 @@ export function createSharedRuntimeSession(options) {
     }
   }
 
+  async function loadTagColorsConfig() {
+    try {
+      const config = await loadJson("/config/tag-colors.json");
+      return Array.isArray(config && config.colors) ? config.colors : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   function wireObjectPersistence() {
     if (runtime.objectPersistenceWired) {
       return;
@@ -84,8 +162,8 @@ export function createSharedRuntimeSession(options) {
       ["navigation", runtime.objects.navigation],
       ["tagPool", runtime.objects.tagPool],
       ["pagingQueue", runtime.objects.pagingQueue],
-      ["pagingHistory", runtime.objects.pagingHistory],
-      ["internalLinks", runtime.objects.internalLinks]
+      ["internalLinks", runtime.objects.internalLinks],
+      ["configuration", runtime.objects.configuration]
     ];
 
     objectEntries.forEach(([key, object]) => {
@@ -96,6 +174,46 @@ export function createSharedRuntimeSession(options) {
         runtime.settingsStore.setObjectSnapshot(key, object.createSnapshot());
         runtime.settingsStore.schedulePersist(120);
       });
+    });
+  }
+
+  function wireArticleRendering(navigator) {
+    if (!navigator || typeof navigator.subscribe !== "function") {
+      return;
+    }
+    navigator.subscribe((event) => {
+      if (event.type !== "open") {
+        return;
+      }
+      if (typeof navigator.readState === "function") {
+        const navState = navigator.readState();
+        if (navState && navState.navArea === "configuration") {
+          return;
+        }
+      }
+
+      const article = runtimeState.articleMap.get(event.articleId);
+      const pane = getActivePane();
+      if (!article || !pane) {
+        return;
+      }
+
+      const token = runtime.articleRenderToken + 1;
+      runtime.articleRenderToken = token;
+
+      loadArticleHtml(article, runtimeState.articleCache)
+        .then((html) => {
+          if (token !== runtime.articleRenderToken) {
+            return;
+          }
+          mountArticleIntoPane(pane, html);
+        })
+        .catch((error) => {
+          if (token !== runtime.articleRenderToken) {
+            return;
+          }
+          mountErrorIntoPane(pane, "Unable to load article: " + error.message);
+        });
     });
   }
 
@@ -123,91 +241,87 @@ export function createSharedRuntimeSession(options) {
       topLevel: runtimeState.website.topLevel,
       landingArticleId
     });
-    runtime.objects.pagingHistory = createPagingHistory({ max: 20 });
     runtime.objects.navigation = createNavigationObject({
       articleMap: runtimeState.articleMap,
-      landingArticleId,
-      pagingHistory: runtime.objects.pagingHistory
+      landingArticleId
     });
     runtime.objects.tagPool = createTagPool({
-      tagMap: runtimeState.tags
+      tagMap: runtimeState.tags,
+      articleOrder: flattenTopLevelArticleIds(runtimeState.website.topLevel),
+      palette: await loadTagColorsConfig(),
+      prevalentColor: derivePrevalentColor(collectThemeColorCandidates())
     });
     runtime.objects.pagingQueue = createPagingQueue({
-      topLevel: runtimeState.website.topLevel,
-      articleMap: runtimeState.articleMap,
-      tagMap: runtimeState.tags,
-      tagPool: runtime.objects.tagPool
+      articleMap: runtimeState.articleMap
     });
     runtime.objects.internalLinks = createInternalLinks({
       data: await loadInternalLinksData(runtimeState.sourceFolder)
     });
+    runtime.objects.configuration = createConfigurationObject({});
 
     const siteMapSnapshot = runtime.settingsStore.getObjectSnapshot("siteMap", runtime.siteMap.createSnapshot());
     runtime.siteMap.loadSnapshot(siteMapSnapshot);
-    runtime.objects.navigation.loadSnapshot(
-      runtime.settingsStore.getObjectSnapshot("navigation", runtime.objects.navigation.createSnapshot())
-    );
-    runtime.objects.navigation.history.loadSnapshot(
-      runtime.settingsStore.getObjectSnapshot("pagingHistory", runtime.objects.pagingHistory.createSnapshot())
-    );
+    const navigationSnapshot = runtime.settingsStore.getObjectSnapshot("navigation", runtime.objects.navigation.createSnapshot());
+    if (
+      (!navigationSnapshot.navigationHistory || typeof navigationSnapshot.navigationHistory !== "object")
+      && runtime.settingsStore.hasObjectSnapshot("pagingHistory")
+    ) {
+      navigationSnapshot.navigationHistory = runtime.settingsStore.getObjectSnapshot("pagingHistory", { entries: [], max: 20 });
+    }
+    runtime.objects.navigation.loadSnapshot(navigationSnapshot);
     runtime.objects.tagPool.loadSnapshot(
       runtime.settingsStore.getObjectSnapshot("tagPool", runtime.objects.tagPool.createSnapshot())
     );
     runtime.objects.pagingQueue.loadSnapshot(
       runtime.settingsStore.getObjectSnapshot("pagingQueue", runtime.objects.pagingQueue.createSnapshot())
     );
+    runtime.objects.tagPool.bindPagingQueue(runtime.objects.pagingQueue, { syncNow: true });
     runtime.objects.internalLinks.loadSnapshot(
       runtime.settingsStore.getObjectSnapshot("internalLinks", runtime.objects.internalLinks.createSnapshot())
     );
+    runtime.objects.configuration.loadSnapshot(
+      runtime.settingsStore.getObjectSnapshot("configuration", runtime.objects.configuration.createSnapshot())
+    );
+
+    // Navigation object owns current navigation state for inspector/next migrations.
+    const siteMapState = runtime.siteMap.readState();
+    runtime.objects.navigation.setExpandedNodeIds(siteMapState.expandedNodeIds || []);
 
     runtime.navigation.subscribe((event) => {
       if (event.type !== "open") {
         return;
       }
-
-      const article = runtimeState.articleMap.get(event.articleId);
-      const pane = getActivePane();
-      if (!article || !pane) {
-        return;
-      }
-
-      const token = runtime.articleRenderToken + 1;
-      runtime.articleRenderToken = token;
-
-      loadArticleHtml(article, runtimeState.articleCache)
-        .then((html) => {
-          if (token !== runtime.articleRenderToken) {
-            return;
-          }
-          mountArticleIntoPane(pane, html);
-        })
-        .catch((error) => {
-          if (token !== runtime.articleRenderToken) {
-            return;
-          }
-          mountErrorIntoPane(pane, "Unable to load article: " + error.message);
-        });
+      runtime.objects.navigation.openArticle(event.articleId);
     });
+
+    runtime.siteMap.subscribe((event, stateSnapshot) => {
+      runtime.objects.navigation.setExpandedNodeIds(stateSnapshot.expandedNodeIds || []);
+    });
+
+    wireArticleRendering(runtime.navigation);
+    wireArticleRendering(runtime.objects.navigation);
 
     wireObjectPersistence();
   }
 
   function getDefaultArticleId() {
-    if (!runtime.navigation || !runtimeState.website) {
+    const navigator = useNavigationObject ? runtime.objects.navigation : runtime.navigation;
+    if (!navigator || !runtimeState.website) {
       return null;
     }
     const first = flattenTopLevelArticleIds(runtimeState.website.topLevel)[0];
     if (first) {
       return first;
     }
-    return runtime.navigation.readState().landingArticleId || null;
+    return navigator.readState().landingArticleId || null;
   }
 
-  function bindLinkDelegation(container) {
-    if (!runtime.navigation) {
+  function bindLinkDelegation(container, navigatorOverride) {
+    const navigator = navigatorOverride || (useNavigationObject ? runtime.objects.navigation : runtime.navigation);
+    if (!navigator || typeof navigator.bindArticleLinkDelegation !== "function") {
       return () => {};
     }
-    return runtime.navigation.bindArticleLinkDelegation(container);
+    return navigator.bindArticleLinkDelegation(container);
   }
 
   return {
@@ -228,11 +342,14 @@ export function createSharedRuntimeSession(options) {
     getPagingQueue() {
       return runtime.objects.pagingQueue;
     },
-    getPagingHistory() {
-      return runtime.objects.pagingHistory;
+    getNavigationHistory() {
+      return runtime.objects.navigation;
     },
     getInternalLinks() {
       return runtime.objects.internalLinks;
+    },
+    getConfiguration() {
+      return runtime.objects.configuration;
     },
     getSettingsStore() {
       return runtime.settingsStore;

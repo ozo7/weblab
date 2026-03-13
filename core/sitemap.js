@@ -15,7 +15,7 @@ export function createSiteMap(options) {
     nodeById: new Map(),
     articleIdByNodeId: new Map(),
     nodeIdByArticleId: new Map(),
-    selectedArticleId: null,
+    selectedArticleIDs: new Set(),
     landingArticleId: isValidArticleId(articleMap, options.landingArticleId) ? options.landingArticleId : null
   };
   const subscribers = new Set();
@@ -32,7 +32,7 @@ export function createSiteMap(options) {
 
   function readState() {
     return {
-      selectedArticleId: state.selectedArticleId,
+      selectedArticleIDs: Array.from(state.selectedArticleIDs),
       landingArticleId: state.landingArticleId,
       expandedNodeIds: Array.from(state.expandedNodeIds)
     };
@@ -84,14 +84,9 @@ export function createSiteMap(options) {
   }
 
   function getTreeModel(selectedArticleId) {
-    const targetSelected = isValidArticleId(articleMap, selectedArticleId)
+    const highlightedId = isValidArticleId(articleMap, selectedArticleId)
       ? selectedArticleId
-      : (isValidArticleId(articleMap, state.selectedArticleId) ? state.selectedArticleId : null);
-    if (targetSelected) {
-      ensureExpandedForArticle(targetSelected);
-      state.selectedArticleId = targetSelected;
-    }
-
+      : null;
     const nodes = [];
 
     function walk(entries, depth, path) {
@@ -122,7 +117,8 @@ export function createSiteMap(options) {
           isClickable: canOpen,
           hasChildren: model.hasChildren,
           isExpanded,
-          isActive: canOpen && targetSelected === articleId
+          isActive: canOpen && highlightedId === articleId,
+          isSelected: canOpen && state.selectedArticleIDs.has(articleId)
         });
         if (model.hasChildren && isExpanded) {
           walk(entry.children, depth + 1, nextPath);
@@ -156,6 +152,7 @@ export function createSiteMap(options) {
       return false;
     }
     ensureExpandedForArticle(articleId);
+    state.selectedArticleIDs.add(articleId);
     publish({ type: "expand-path", articleId });
     return true;
   }
@@ -165,7 +162,7 @@ export function createSiteMap(options) {
     if (!isValidArticleId(articleMap, articleId)) {
       return null;
     }
-    state.selectedArticleId = articleId;
+    state.selectedArticleIDs.add(articleId);
     ensureExpandedForArticle(articleId);
     publish({ type: "open-node", nodeId, articleId });
     return articleId;
@@ -197,14 +194,59 @@ export function createSiteMap(options) {
     if (!isValidArticleId(articleMap, articleId)) {
       return false;
     }
-    state.selectedArticleId = articleId;
+    state.selectedArticleIDs = new Set([articleId]);
     ensureExpandedForArticle(articleId);
     publish({ type: "set-selected", articleId });
     return true;
   }
 
+  function setSelectedArticles(articleIds) {
+    const next = new Set();
+    (Array.isArray(articleIds) ? articleIds : []).forEach((articleId) => {
+      if (isValidArticleId(articleMap, articleId)) {
+        next.add(articleId);
+        ensureExpandedForArticle(articleId);
+      }
+    });
+    state.selectedArticleIDs = next;
+    publish({ type: "set-selected-many", articleIds: Array.from(next) });
+    return Array.from(next);
+  }
+
+  function addSelectedArticle(articleId) {
+    if (!isValidArticleId(articleMap, articleId)) {
+      return false;
+    }
+    state.selectedArticleIDs.add(articleId);
+    ensureExpandedForArticle(articleId);
+    publish({ type: "add-selected", articleId });
+    return true;
+  }
+
+  function removeSelectedArticle(articleId) {
+    if (!state.selectedArticleIDs.has(articleId)) {
+      return false;
+    }
+    state.selectedArticleIDs.delete(articleId);
+    publish({ type: "remove-selected", articleId });
+    return true;
+  }
+
+  function clearSelectedArticles() {
+    if (!state.selectedArticleIDs.size) {
+      return;
+    }
+    state.selectedArticleIDs = new Set();
+    publish({ type: "clear-selected" });
+  }
+
   function getSelectedArticle() {
-    return state.selectedArticleId;
+    const first = state.selectedArticleIDs.values().next();
+    return first.done ? null : first.value;
+  }
+
+  function getSelectedArticles() {
+    return Array.from(state.selectedArticleIDs);
   }
 
   function subscribe(subscriber) {
@@ -214,7 +256,7 @@ export function createSiteMap(options) {
 
   function createSnapshot() {
     return {
-      selectedArticleId: state.selectedArticleId,
+      selectedArticleIDs: Array.from(state.selectedArticleIDs),
       landingArticleId: state.landingArticleId,
       expandedNodeIds: Array.from(state.expandedNodeIds)
     };
@@ -226,10 +268,18 @@ export function createSiteMap(options) {
     }
     const nextExpanded = Array.isArray(snapshot.expandedNodeIds) ? snapshot.expandedNodeIds : [];
     state.expandedNodeIds = new Set(nextExpanded.filter((id) => state.nodeById.has(id)));
-    if (isValidArticleId(articleMap, snapshot.selectedArticleId)) {
-      state.selectedArticleId = snapshot.selectedArticleId;
-      ensureExpandedForArticle(snapshot.selectedArticleId);
-    }
+    const selectedValues = Array.isArray(snapshot.selectedArticleIDs)
+      ? snapshot.selectedArticleIDs
+      : (Array.isArray(snapshot.selectedArticleIds)
+        ? snapshot.selectedArticleIds
+        : (isValidArticleId(articleMap, snapshot.selectedArticleId) ? [snapshot.selectedArticleId] : []));
+    state.selectedArticleIDs = new Set();
+    selectedValues.forEach((articleId) => {
+      if (isValidArticleId(articleMap, articleId)) {
+        state.selectedArticleIDs.add(articleId);
+        ensureExpandedForArticle(articleId);
+      }
+    });
     if (isValidArticleId(articleMap, snapshot.landingArticleId)) {
       state.landingArticleId = snapshot.landingArticleId;
     }
@@ -251,7 +301,12 @@ export function createSiteMap(options) {
     setLandingArticleId,
     getLandingArticleId,
     setSelectedArticle,
+    setSelectedArticles,
+    addSelectedArticle,
+    removeSelectedArticle,
+    clearSelectedArticles,
     getSelectedArticle,
+    getSelectedArticles,
     subscribe,
     createSnapshot,
     loadSnapshot,

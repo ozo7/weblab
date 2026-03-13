@@ -1,5 +1,25 @@
 ## Recent Session Updates
 
+### Latest Updates (Configuration + Shared Color System)
+
+1. Added object-based `Configuration` model: `core/configuration-object.js` with persisted state (`selectedSchemeKey`, `pastelBaseColor`, `colorSchemesVisible`) and API methods for scheme selection/toggle.
+2. Centralized color scheme definitions and helpers in `core/color-schemes.js` (10 schemes total, including dynamic pastel resolution and readable text helper).
+3. Added reusable shared picker module `core/color-picker.js` with smooth pointer drag, hue slider, hex sync, and one-time shared style injection.
+4. Refactored 1080 configuration nav area to use `Configuration` object + shared picker; `Color Schemes` panel now shows 10 styled scheme buttons and a dynamic pastel picker.
+5. Added configuration illustration rendering into the content pane (preview-only) when `navArea=configuration`.
+6. Updated runtime wiring in `core/shared-runtime.js`: loads/persists `Configuration` object and suppresses article mounting while nav area is `configuration`.
+7. Updated 1080 `Home`/`Back` behavior to exit `configuration` back to `menus` and then perform normal navigation.
+8. Refactored tag-to-queue orchestration ownership:
+   - `TagPool` now identifies pages from selected tags and feeds `PagingQueue`.
+   - `PagingQueue` exposes generic `setPages(pageIds, { allowReorder })`.
+   - 1080 viewport no longer manually rebuilds queue logic in click handlers.
+9. Added lab/static references for scheme exploration:
+   - `lab/tag-color-orders.html`
+   - `lab/theme-color-schemes.html`
+   - `lab/theme-color-strategies.html`
+   - `lab/theme-color-strategies-v2.html`
+10. Added `Configuration` object to lab internals inspector so live state is inspectable and heat-color tracked.
+
 1. Switched from static `python -m http.server` to Node server `server.js` for local runtime parity and media alias support.
 2. Kept central editable config in `config/manual-settings.json`; server reads `paths.mediaAlias` and serves `/zz-media-files/*` from that filesystem alias.
 3. Removed frontend media-root remap logic from content mount flow; media path resolution is now server-owned.

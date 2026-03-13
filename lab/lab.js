@@ -6,12 +6,13 @@ import { createViewport720 } from "../viewports/viewport-720.js";
 import { createViewport360 } from "../viewports/viewport-360.js";
 
 const OBJECT_DEFS = [
-  { key: "Navigation", active: true },
-  { key: "SiteMap", active: true },
-  { key: "TagPool", active: true },
-  { key: "PagingQueue", active: true },
-  { key: "PagingHistory", active: true },
-  { key: "InternalLinks", active: true }
+  { key: "Navigation", label: "Navigation", active: true },
+  { key: "SiteMap", label: "SiteMap", active: true },
+  { key: "TagPool", label: "TagPool", active: true },
+  { key: "PagingQueue", label: "PagingQueue", active: true },
+  { key: "NavigationHistory", label: "NavigationHistory", active: true },
+  { key: "InternalLinks", label: "InternalLinks", active: true },
+  { key: "Configuration", label: "Configuration", active: true }
 ];
 
 const dom = {
@@ -103,19 +104,29 @@ function clearActiveViewport() {
   }
 }
 
+function getProfileNavigation(profileKey) {
+  return profileKey === "1080"
+    ? sharedRuntime.getNavigationObject()
+    : sharedRuntime.getNavigation();
+}
+
 function createViewportInstance(profile) {
+  const navigation = getProfileNavigation(profile.key);
   if (profile.key === "1080") {
     return createViewport1080({
       host: dom.host,
-      navigation: sharedRuntime.getNavigation(),
+      navigation,
       siteMap: sharedRuntime.getSiteMap(),
+      tagPool: sharedRuntime.getTagPool(),
+      pagingQueue: sharedRuntime.getPagingQueue(),
+      configuration: sharedRuntime.getConfiguration(),
       homeArticleId: sharedRuntime.getDefaultArticleId()
     });
   }
   if (profile.key === "720") {
     return createViewport720({
       host: dom.host,
-      navigation: sharedRuntime.getNavigation(),
+      navigation,
       siteMap: sharedRuntime.getSiteMap(),
       settingsStore: sharedRuntime.getSettingsStore(),
       websiteTopLevel: sharedRuntime.runtimeState.website ? sharedRuntime.runtimeState.website.topLevel : [],
@@ -126,7 +137,7 @@ function createViewportInstance(profile) {
   }
   return createViewport360({
     host: dom.host,
-    navigation: sharedRuntime.getNavigation(),
+    navigation,
     siteMap: sharedRuntime.getSiteMap(),
     settingsStore: sharedRuntime.getSettingsStore(),
     websiteTopLevel: sharedRuntime.runtimeState.website ? sharedRuntime.runtimeState.website.topLevel : [],
@@ -149,9 +160,9 @@ async function activateProfile(profileKey) {
   if (profile.status === "active") {
     await ensureSharedRuntime();
     runtime.activeViewportInstance = createViewportInstance(profile);
-    runtime.unbindDelegation = sharedRuntime.bindLinkDelegation(runtime.activeViewportInstance.articlePane);
+    const navigation = getProfileNavigation(profile.key);
+    runtime.unbindDelegation = sharedRuntime.bindLinkDelegation(runtime.activeViewportInstance.articlePane, navigation);
 
-    const navigation = sharedRuntime.getNavigation();
     const current = navigation.readState().selectedArticleId;
     if (!current) {
       const fallback = sharedRuntime.getDefaultArticleId();
@@ -172,7 +183,8 @@ async function activateProfile(profileKey) {
   sharedRuntime.runtimeState.activeViewport = profileKey;
 }
 
-function buildFullTreeFromWebsite(topLevel, selectedArticleId, expandedNodeIds) {
+function buildFullTreeFromWebsite(topLevel, selectedArticleIDs, expandedNodeIds) {
+  const selectedSet = new Set(Array.isArray(selectedArticleIDs) ? selectedArticleIDs : []);
   const nodes = [];
   function walk(entries, depth, parentNodeId, path) {
     if (!Array.isArray(entries)) {
@@ -196,7 +208,7 @@ function buildFullTreeFromWebsite(topLevel, selectedArticleId, expandedNodeIds) 
         articleId,
         hasChildren,
         isExpanded: hasChildren ? expandedNodeIds.includes(nodeId) : false,
-        isActive: Boolean(articleId) && selectedArticleId === articleId
+        isSelected: Boolean(articleId) && selectedSet.has(articleId)
       });
       walk(entry.children, depth + 1, nodeId, nextPath);
     });
@@ -207,27 +219,11 @@ function buildFullTreeFromWebsite(topLevel, selectedArticleId, expandedNodeIds) 
 
 function getMutableState(objectKey) {
   if (objectKey === "SiteMap") {
-    const siteMap = sharedRuntime.getSiteMap();
-    if (!siteMap) {
-      return {
-        object: objectKey,
-        active: true,
-        available: false
-      };
-    }
-
-    const base = typeof siteMap.readState === "function" ? siteMap.readState() : {};
-    const topLevel = sharedRuntime.runtimeState.website && Array.isArray(sharedRuntime.runtimeState.website.topLevel)
-      ? sharedRuntime.runtimeState.website.topLevel
-      : [];
-
     return {
       object: objectKey,
       active: true,
-      selectedArticleId: base.selectedArticleId || null,
-      landingArticleId: base.landingArticleId || null,
-      expandedNodeIds: Array.isArray(base.expandedNodeIds) ? base.expandedNodeIds.slice() : [],
-      fullTree: buildFullTreeFromWebsite(topLevel, base.selectedArticleId || null, Array.isArray(base.expandedNodeIds) ? base.expandedNodeIds : [])
+      mode: "deactivated-for-current-navigation",
+      note: "Current hierarchy navigation activity is owned by Navigation object."
     };
   }
   if (objectKey === "Navigation") {
@@ -248,16 +244,22 @@ function getMutableState(objectKey) {
       ? Object.assign({ object: objectKey, active: true }, pagingQueue.readState())
       : { object: objectKey, active: true, available: false };
   }
-  if (objectKey === "PagingHistory") {
-    const pagingHistory = sharedRuntime.getPagingHistory();
-    return pagingHistory && typeof pagingHistory.readState === "function"
-      ? Object.assign({ object: objectKey, active: true }, pagingHistory.readState())
+  if (objectKey === "NavigationHistory") {
+    const navigationHistory = sharedRuntime.getNavigationHistory();
+    return navigationHistory && typeof navigationHistory.getNavigationHistoryState === "function"
+      ? Object.assign({ object: objectKey, active: true }, navigationHistory.getNavigationHistoryState())
       : { object: objectKey, active: true, available: false };
   }
   if (objectKey === "InternalLinks") {
     const internalLinks = sharedRuntime.getInternalLinks();
     return internalLinks && typeof internalLinks.readState === "function"
       ? Object.assign({ object: objectKey, active: true }, internalLinks.readState())
+      : { object: objectKey, active: true, available: false };
+  }
+  if (objectKey === "Configuration") {
+    const configuration = sharedRuntime.getConfiguration();
+    return configuration && typeof configuration.readState === "function"
+      ? Object.assign({ object: objectKey, active: true }, configuration.readState())
       : { object: objectKey, active: true, available: false };
   }
   return {
@@ -298,12 +300,12 @@ function updateChangeTracking(objectKey, snapshot) {
       }
       const older = prevById.get(node.nodeId);
       if (!older) {
-        changedTreeFields.add(node.nodeId + ":isActive");
+        changedTreeFields.add(node.nodeId + ":isSelected");
         changedTreeFields.add(node.nodeId + ":isExpanded");
         return;
       }
-      if (Boolean(older.isActive) !== Boolean(node.isActive)) {
-        changedTreeFields.add(node.nodeId + ":isActive");
+      if (Boolean(older.isSelected) !== Boolean(node.isSelected)) {
+        changedTreeFields.add(node.nodeId + ":isSelected");
       }
       if (Boolean(older.isExpanded) !== Boolean(node.isExpanded)) {
         changedTreeFields.add(node.nodeId + ":isExpanded");
@@ -353,6 +355,33 @@ function getTreeFieldHeatClass(objectKey, nodeId, fieldKey) {
   return "";
 }
 
+function getObjectHeatClass(objectKey) {
+  const tracker = ensureTracking(objectKey);
+  if (tracker.red.size || tracker.treeFieldRed.size) {
+    return "heat-red";
+  }
+  if (tracker.orange.size || tracker.treeFieldOrange.size) {
+    return "heat-orange";
+  }
+  if (tracker.blue.size || tracker.treeFieldBlue.size) {
+    return "heat-blue";
+  }
+  return "";
+}
+
+function refreshTrackingAndViews() {
+  OBJECT_DEFS.forEach((definition) => {
+    const snapshot = getMutableState(definition.key);
+    updateChangeTracking(definition.key, snapshot);
+  });
+  if (runtime.objectsListOpen) {
+    renderObjectList();
+  }
+  if (runtime.objectsPanelOpen) {
+    renderObjectWorkspace();
+  }
+}
+
 function renderObjectList() {
   dom.objectsList.innerHTML = "";
   OBJECT_DEFS.forEach((definition) => {
@@ -360,12 +389,10 @@ function renderObjectList() {
     button.type = "button";
     button.className = "lab-object-btn"
       + (runtime.selectedObjectKey === definition.key ? " selected" : "")
-      + (definition.active ? " active" : " inactive");
-    button.textContent = definition.key + (definition.active ? "" : " (inactive)");
+      + (definition.active ? " active" : " inactive")
+      + " " + getObjectHeatClass(definition.key);
+    button.textContent = (definition.label || definition.key) + (definition.active ? "" : " (inactive)");
     button.addEventListener("click", () => {
-      if (!definition.active) {
-        return;
-      }
       runtime.selectedObjectKey = definition.key;
       setObjectViewOpen(true);
       renderObjectList();
@@ -378,7 +405,6 @@ function renderObjectList() {
 
 function renderObjectWorkspace() {
   const snapshot = getMutableState(runtime.selectedObjectKey);
-  updateChangeTracking(runtime.selectedObjectKey, snapshot);
 
   const wrap = document.createElement("div");
   const head = document.createElement("div");
@@ -421,10 +447,10 @@ function renderObjectWorkspace() {
         head.textContent = (node.type || "node") + " " + (node.title || node.label || node.articleId || node.nodeId);
         row.appendChild(head);
 
-        const active = document.createElement("span");
-        active.className = "lab-tree-flag " + getTreeFieldHeatClass(runtime.selectedObjectKey, node.nodeId, "isActive");
-        active.textContent = " isActive=" + String(Boolean(node.isActive));
-        row.appendChild(active);
+        const selected = document.createElement("span");
+        selected.className = "lab-tree-flag " + getTreeFieldHeatClass(runtime.selectedObjectKey, node.nodeId, "isSelected");
+        selected.textContent = " isSelected=" + String(Boolean(node.isSelected));
+        row.appendChild(selected);
 
         const expanded = document.createElement("span");
         expanded.className = "lab-tree-flag " + getTreeFieldHeatClass(runtime.selectedObjectKey, node.nodeId, "isExpanded");
@@ -456,7 +482,7 @@ function bindObjectStateSync() {
     window.clearInterval(runtime.objectStateTimer);
     runtime.objectStateTimer = null;
   }
-  if (!runtime.objectsPanelOpen) {
+  if (!(runtime.objectsPanelOpen || runtime.objectsListOpen)) {
     return;
   }
 
@@ -465,18 +491,21 @@ function bindObjectStateSync() {
     Navigation: sharedRuntime.getNavigationObject(),
     TagPool: sharedRuntime.getTagPool(),
     PagingQueue: sharedRuntime.getPagingQueue(),
-    PagingHistory: sharedRuntime.getPagingHistory(),
-    InternalLinks: sharedRuntime.getInternalLinks()
+    NavigationHistory: sharedRuntime.getNavigationHistory(),
+    InternalLinks: sharedRuntime.getInternalLinks(),
+    Configuration: sharedRuntime.getConfiguration()
   };
-  const activeObject = objectMap[runtime.selectedObjectKey];
-  if (activeObject && typeof activeObject.subscribe === "function") {
-    runtime.unbindObjectSubscriptions.push(activeObject.subscribe(() => {
-      renderObjectWorkspace();
-    }));
-  }
+  Object.keys(objectMap).forEach((key) => {
+    const object = objectMap[key];
+    if (object && typeof object.subscribe === "function") {
+      runtime.unbindObjectSubscriptions.push(object.subscribe(() => {
+        refreshTrackingAndViews();
+      }));
+    }
+  });
 
   runtime.objectStateTimer = window.setInterval(() => {
-    renderObjectWorkspace();
+    refreshTrackingAndViews();
   }, 700);
 }
 
@@ -484,10 +513,12 @@ function setObjectsPanelOpen(open) {
   runtime.objectsListOpen = Boolean(open);
   dom.objectsToggle.setAttribute("aria-expanded", runtime.objectsListOpen ? "true" : "false");
   if (runtime.objectsListOpen) {
+    refreshTrackingAndViews();
     renderObjectList();
   }
   dom.objectsList.hidden = !runtime.objectsListOpen;
   dom.objectsList.style.display = runtime.objectsListOpen ? "grid" : "none";
+  bindObjectStateSync();
 }
 
 function setObjectViewOpen(open) {
@@ -496,17 +527,12 @@ function setObjectViewOpen(open) {
   dom.objectsWorkspace.hidden = !runtime.objectsPanelOpen;
 
   if (!runtime.objectsPanelOpen) {
-    runtime.unbindObjectSubscriptions.forEach((unbind) => unbind());
-    runtime.unbindObjectSubscriptions = [];
-    if (runtime.objectStateTimer) {
-      window.clearInterval(runtime.objectStateTimer);
-      runtime.objectStateTimer = null;
-    }
+    bindObjectStateSync();
     return;
   }
 
   renderObjectList();
-  renderObjectWorkspace();
+  refreshTrackingAndViews();
   bindObjectStateSync();
 }
 

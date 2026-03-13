@@ -44,7 +44,7 @@
 - `loadSnapshot(snapshot)`
 - `subscribe(listener)`
 
-## PagingHistory
+## NavigationHistory
 - `recordOpen(articleId, options)`
 - `canGoBack()`
 - `goBack()`

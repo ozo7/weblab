@@ -13,6 +13,7 @@ const runtime = {
 };
 
 const sharedRuntime = createSharedRuntimeSession({
+  useNavigationObject: true,
   getActivePane() {
     return runtime.activeViewport ? runtime.activeViewport.articlePane : null;
   }
@@ -41,13 +42,17 @@ function mountViewport() {
     runtime.unbindDelegation = null;
   }
 
+  const navigation = sharedRuntime.getNavigationObject();
   runtime.activeViewport = createViewport1080({
     host,
-    navigation: sharedRuntime.getNavigation(),
+    navigation,
     siteMap: sharedRuntime.getSiteMap(),
+    tagPool: sharedRuntime.getTagPool(),
+    pagingQueue: sharedRuntime.getPagingQueue(),
+    configuration: sharedRuntime.getConfiguration(),
     homeArticleId: sharedRuntime.getDefaultArticleId()
   });
-  runtime.unbindDelegation = sharedRuntime.bindLinkDelegation(runtime.activeViewport.articlePane);
+  runtime.unbindDelegation = sharedRuntime.bindLinkDelegation(runtime.activeViewport.articlePane, navigation);
 }
 
 async function start() {
@@ -67,7 +72,7 @@ async function start() {
   await sharedRuntime.getSettingsStore().load();
   mountViewport();
 
-  const navigation = sharedRuntime.getNavigation();
+  const navigation = sharedRuntime.getNavigationObject();
   const current = navigation.readState().selectedArticleId;
   if (current) {
     navigation.openArticleById(current);

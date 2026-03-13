@@ -80,6 +80,11 @@ export function createSettingsStore() {
     settings.app.objects[objectKey] = cloneJson(snapshot);
   }
 
+  function hasObjectSnapshot(objectKey) {
+    ensureShape();
+    return isObject(settings.app.objects[objectKey]);
+  }
+
   async function persistNow() {
     ensureShape();
     const payload = cloneJson(settings);
@@ -116,6 +121,7 @@ export function createSettingsStore() {
     getViewportSession,
     setViewportSession,
     getObjectSnapshot,
+    hasObjectSnapshot,
     setObjectSnapshot,
     schedulePersist,
     persistNow
