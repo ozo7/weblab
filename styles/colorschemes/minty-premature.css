@@ -184,7 +184,6 @@
 
 .cs-floating-btn {
   border: 1px solid var(--mint-border);
-  border-color: var(--mint-border);
   color: var(--mint-text);
   background: var(--mint-layer);
 }

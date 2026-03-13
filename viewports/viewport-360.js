@@ -218,7 +218,7 @@ export function createViewport360(options) {
     wrap.className = className;
     if (!queueIds.length) {
       const empty = document.createElement("div");
-      empty.className = "wv360-empty";
+      empty.className = "wv360-empty cs-empty";
       empty.textContent = "No queued articles yet.";
       wrap.appendChild(empty);
       return wrap;
