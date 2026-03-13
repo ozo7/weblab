@@ -10,6 +10,7 @@ import {
 } from "./content.js";
 import { createNavigationCore } from "./navigation-core.js";
 import { createNavigationTreeCore } from "./nav-tree-core.js";
+import { createSettingsStore } from "./settings-store.js";
 
 function flattenTopLevelArticleIds(topLevel) {
   const ids = [];
@@ -40,6 +41,7 @@ export function createSharedRuntimeSession(options) {
   const runtime = {
     navigation: null,
     navTree: null,
+    settingsStore: createSettingsStore(),
     articleRenderToken: 0
   };
 
@@ -122,6 +124,9 @@ export function createSharedRuntimeSession(options) {
     },
     getNavTree() {
       return runtime.navTree;
+    },
+    getSettingsStore() {
+      return runtime.settingsStore;
     },
     getDefaultArticleId,
     bindLinkDelegation

@@ -1,9 +1,11 @@
 {
   "server": {
     "host": "127.0.0.1",
-    "port": 8090
+    "port": 8090,
+    "maxBodyBytes": 1048576
   },
   "paths": {
-    "mediaAlias": "../webwriter/zz-media-files"
+    "mediaAlias": "../webwriter/zz-media-files",
+    "settings": "config/settings.json"
   }
 }

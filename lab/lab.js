@@ -2,7 +2,7 @@ import { mountErrorIntoPane } from "../core/content.js";
 import { createSharedRuntimeSession } from "../core/shared-runtime.js";
 import { ensureStyleLoaded } from "../core/style-loader.js";
 import { createViewport1080 } from "../viewports/viewport-1080.js";
-import { createViewport720Stub } from "../viewports/viewport-720.js";
+import { createViewport720 } from "../viewports/viewport-720.js";
 import { createViewport360Stub } from "../viewports/viewport-360.js";
 
 const dom = {
@@ -44,6 +44,7 @@ async function ensureViewportStyle(styleFile) {
 
 async function ensureSharedRuntime() {
   await sharedRuntime.ensureLoaded();
+  await sharedRuntime.getSettingsStore().load();
 }
 
 function clearActiveViewport() {
@@ -67,7 +68,15 @@ function createViewportInstance(profile) {
     });
   }
   if (profile.key === "720") {
-    return createViewport720Stub({ host: dom.host });
+    return createViewport720({
+      host: dom.host,
+      navigation: sharedRuntime.getNavigation(),
+      settingsStore: sharedRuntime.getSettingsStore(),
+      websiteTopLevel: sharedRuntime.runtimeState.website ? sharedRuntime.runtimeState.website.topLevel : [],
+      articleMap: sharedRuntime.runtimeState.articleMap,
+      tagMap: sharedRuntime.runtimeState.tags,
+      homeArticleId: sharedRuntime.getDefaultArticleId()
+    });
   }
   return createViewport360Stub({ host: dom.host });
 }

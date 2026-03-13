@@ -12,10 +12,12 @@ const SETTINGS_PATH = path.join(ROOT_DIR, "config", "manual-settings.json");
 const DEFAULTS = {
   server: {
     host: "127.0.0.1",
-    port: 8090
+    port: 8090,
+    maxBodyBytes: 1024 * 1024
   },
   paths: {
-    mediaAlias: "../webwriter/zz-media-files"
+    mediaAlias: "../webwriter/zz-media-files",
+    settings: "config/settings.json"
   }
 };
 
@@ -59,7 +61,9 @@ function readSettings() {
 const SETTINGS = readSettings();
 const HOST = String(process.env.WEBLAB_HOST || SETTINGS.server.host || DEFAULTS.server.host);
 const PORT = Number(process.env.WEBLAB_PORT || SETTINGS.server.port || DEFAULTS.server.port);
+const MAX_BODY_BYTES = Number(SETTINGS.server.maxBodyBytes || DEFAULTS.server.maxBodyBytes);
 const MEDIA_ALIAS_DIR = path.resolve(ROOT_DIR, SETTINGS.paths.mediaAlias || DEFAULTS.paths.mediaAlias);
+const APP_SETTINGS_PATH = path.resolve(ROOT_DIR, SETTINGS.paths.settings || DEFAULTS.paths.settings);
 
 function sendText(response, statusCode, text) {
   response.writeHead(statusCode, {
@@ -67,6 +71,83 @@ function sendText(response, statusCode, text) {
     "Content-Length": Buffer.byteLength(text)
   });
   response.end(text);
+}
+
+function sendJson(response, statusCode, data) {
+  const body = JSON.stringify(data, null, 2);
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body)
+  });
+  response.end(body);
+}
+
+function readAppSettings() {
+  const raw = fs.readFileSync(APP_SETTINGS_PATH, "utf8");
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {};
+  }
+  return parsed;
+}
+
+function writeAppSettings(settings) {
+  const parentDir = path.dirname(APP_SETTINGS_PATH);
+  fs.mkdirSync(parentDir, { recursive: true });
+  fs.writeFileSync(APP_SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n", "utf8");
+}
+
+function handleSettingsGet(response) {
+  try {
+    sendJson(response, 200, readAppSettings());
+  } catch (_) {
+    sendJson(response, 200, {});
+  }
+}
+
+function handleSettingsPost(request, response) {
+  let body = "";
+  let received = 0;
+
+  request.on("data", (chunk) => {
+    received += chunk.length;
+    if (received > MAX_BODY_BYTES) {
+      request.destroy();
+      return;
+    }
+    body += chunk;
+  });
+
+  request.on("end", () => {
+    if (received > MAX_BODY_BYTES) {
+      sendJson(response, 413, { error: "Request body too large" });
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(body || "{}");
+    } catch (_) {
+      sendJson(response, 400, { error: "Invalid JSON payload" });
+      return;
+    }
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      sendJson(response, 400, { error: "Settings payload must be a JSON object" });
+      return;
+    }
+
+    try {
+      writeAppSettings(parsed);
+      sendJson(response, 200, parsed);
+    } catch (_) {
+      sendJson(response, 500, { error: "Unable to write settings file" });
+    }
+  });
+
+  request.on("error", () => {
+    sendJson(response, 500, { error: "Request stream failed" });
+  });
 }
 
 function parseRangeHeader(rangeHeader, size) {
@@ -224,6 +305,24 @@ const server = http.createServer((request, response) => {
   }
 
   const pathname = parsed.pathname;
+  if (pathname === "/api/settings") {
+    if (request.method === "GET") {
+      handleSettingsGet(response);
+      return;
+    }
+    if (request.method === "POST") {
+      handleSettingsPost(request, response);
+      return;
+    }
+    sendText(response, 405, "Method Not Allowed");
+    return;
+  }
+
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    sendText(response, 405, "Method Not Allowed");
+    return;
+  }
+
   const mediaPath = resolveMediaAliasPath(pathname);
   if (mediaPath) {
     serveFile(mediaPath, request, response);

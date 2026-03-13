@@ -17,7 +17,7 @@
       "height": 860,
       "adapter": "viewport-720",
       "style": "viewport-720.css",
-      "status": "stub"
+      "status": "active"
     },
     "360": {
       "key": "360",

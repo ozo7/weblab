@@ -1,0 +1,242 @@
+.wv720-shell,
+.wv720-shell * {
+  box-sizing: border-box;
+}
+
+.wv720-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f6fbf7;
+}
+
+.wv720-content-host {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.wv720-toolbar {
+  display: grid;
+  grid-template-columns: auto auto auto auto auto;
+  gap: 6px;
+  padding: 6px;
+  border-bottom: 1px solid #d6e1d8;
+  background: #f0f6f1;
+}
+
+.wv720-toolbar-btn {
+  border: 1px solid #b8cabc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17301f;
+  min-height: 32px;
+  text-align: left;
+  padding: 6px 9px;
+  font: 600 0.86rem/1.1 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-toolbar-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wv720-rail-open-btn {
+  margin-left: auto;
+}
+
+.wv720-content-host #pane2main {
+  overflow: auto;
+  min-width: 0;
+}
+
+.wv720-rail-edge {
+  position: absolute;
+  top: 54px;
+  right: 10px;
+  z-index: 4;
+  width: 28px;
+  height: 38px;
+  border: 1px solid #b8cabc;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #17301f;
+  cursor: pointer;
+}
+
+.wv720-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 0;
+  margin: 0;
+  background: rgba(18, 28, 21, 0.34);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.wv720-rail {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  width: 300px;
+  max-width: calc(100% - 24px);
+  height: 100%;
+  transform: translateX(102%);
+  transition: transform 170ms ease;
+  border-left: 1px solid #cbdacb;
+  background: #f9fcf9;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.wv720-shell[data-rail="open"] .wv720-rail {
+  transform: translateX(0);
+}
+
+.wv720-shell[data-rail="open"] .wv720-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.wv720-rail-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #d5e2d6;
+}
+
+.wv720-rail-title {
+  font: 700 0.92rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  color: #23422f;
+}
+
+.wv720-rail-close {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #b8cabc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #17301f;
+  cursor: pointer;
+}
+
+.wv720-tags,
+.wv720-queue {
+  padding: 8px;
+  border-bottom: 1px solid #dde8df;
+  display: grid;
+  gap: 8px;
+}
+
+.wv720-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wv720-tag-chip,
+.wv720-clear-btn {
+  border: 1px solid #b8cabc;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #17301f;
+  min-height: 27px;
+  padding: 4px 9px;
+  font: 600 0.75rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-tag-chip.active {
+  border-color: #6e9a7c;
+  background: #e6f1e8;
+}
+
+.wv720-queue-summary {
+  font: 700 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  color: #325240;
+}
+
+.wv720-queue-list {
+  display: grid;
+  gap: 4px;
+}
+
+.wv720-queue-item {
+  border: 1px solid #c4d3c7;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #17301f;
+  min-height: 27px;
+  text-align: left;
+  padding: 4px 7px;
+  font: 600 0.75rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-queue-item.active {
+  border-color: #6e9a7c;
+  background: #e6f1e8;
+}
+
+.wv720-tree {
+  overflow: auto;
+  padding: 8px;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+}
+
+.wv720-tree-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 22px;
+  gap: 5px;
+  align-items: center;
+  border-radius: 7px;
+  padding: 2px 0;
+}
+
+.wv720-tree-toggle,
+.wv720-tree-queue-toggle {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #b8cabc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #17301f;
+  font: 700 0.78rem/1 "Trebuchet MS", "Segoe UI", sans-serif;
+  padding: 0;
+  cursor: pointer;
+}
+
+.wv720-tree-toggle-spacer,
+.wv720-tree-queue-spacer {
+  width: 22px;
+  height: 22px;
+  display: inline-block;
+}
+
+.wv720-tree-main {
+  width: 100%;
+  border: 1px solid #c1d2c6;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #17301f;
+  min-height: 30px;
+  text-align: left;
+  padding: 4px 8px;
+  font: 600 0.8rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv720-tree-main.active {
+  border-color: #6e9a7c;
+  background: #e6f1e8;
+}

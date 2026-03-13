@@ -64,6 +64,7 @@ async function start() {
   await ensureViewportStyle(runtime.profile.style);
 
   await sharedRuntime.ensureLoaded();
+  await sharedRuntime.getSettingsStore().load();
   mountViewport();
 
   const navigation = sharedRuntime.getNavigation();

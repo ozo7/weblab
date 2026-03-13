@@ -1,0 +1,40 @@
+{
+  "app": {
+    "viewportSessions": {
+      "720": {
+        "railOpen": true,
+        "currentArticleId": "hh-schungitraum",
+        "expandedMenuKeys": [],
+        "queue": {
+          "selectedTags": [
+            "indien",
+            "kissen",
+            "pyramidenreise",
+            "vorstand",
+            "thailand",
+            "schungit"
+          ],
+          "sitemapSelectedIds": [
+            "hh-home",
+            "hh-ueber-mich",
+            "hh-ueber-mich-vereinsstatuten",
+            "hh-thailand",
+            "hh-schungit",
+            "hh-schungit-erfahrungsberichte",
+            "hh-schungitraum"
+          ],
+          "useDefaultQueue": false,
+          "nextQueue": [
+            "hh-home",
+            "hh-ueber-mich",
+            "hh-ueber-mich-vereinsstatuten",
+            "hh-thailand",
+            "hh-schungit",
+            "hh-schungit-erfahrungsberichte",
+            "hh-schungitraum"
+          ]
+        }
+      }
+    }
+  }
+}
