@@ -1,5 +1,6 @@
 import { mountErrorIntoPane } from "../core/content.js";
 import { createSharedRuntimeSession } from "../core/shared-runtime.js";
+import { ensureStyleLoaded } from "../core/style-loader.js";
 import { createViewport1080 } from "../viewports/viewport-1080.js";
 import { createViewport720Stub } from "../viewports/viewport-720.js";
 import { createViewport360Stub } from "../viewports/viewport-360.js";
@@ -36,19 +37,9 @@ function setViewportSize(profile) {
   dom.host.style.height = "";
 }
 
-function ensureViewportStyle(styleFile) {
+async function ensureViewportStyle(styleFile) {
   const href = "../styles/" + styleFile;
-  if (runtime.activeStyleNode && runtime.activeStyleNode.getAttribute("href") === href) {
-    return;
-  }
-  if (runtime.activeStyleNode && runtime.activeStyleNode.parentNode) {
-    runtime.activeStyleNode.parentNode.removeChild(runtime.activeStyleNode);
-  }
-  const node = document.createElement("link");
-  node.rel = "stylesheet";
-  node.href = href;
-  document.head.appendChild(node);
-  runtime.activeStyleNode = node;
+  await ensureStyleLoaded(runtime, href);
 }
 
 async function ensureSharedRuntime() {
@@ -88,7 +79,7 @@ async function activateProfile(profileKey) {
   }
 
   setViewportSize(profile);
-  ensureViewportStyle(profile.style);
+  await ensureViewportStyle(profile.style);
   clearActiveViewport();
 
   if (profile.status === "active") {

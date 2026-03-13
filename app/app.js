@@ -1,5 +1,6 @@
 import { mountErrorIntoPane } from "../core/content.js";
 import { createSharedRuntimeSession } from "../core/shared-runtime.js";
+import { ensureStyleLoaded } from "../core/style-loader.js";
 import { createViewport1080 } from "../viewports/viewport-1080.js";
 
 const host = document.getElementById("appViewportHost");
@@ -25,19 +26,9 @@ async function loadProfiles() {
   return response.json();
 }
 
-function ensureViewportStyle(styleFile) {
+async function ensureViewportStyle(styleFile) {
   const href = "../styles/" + styleFile;
-  if (runtime.activeStyleNode && runtime.activeStyleNode.getAttribute("href") === href) {
-    return;
-  }
-  if (runtime.activeStyleNode && runtime.activeStyleNode.parentNode) {
-    runtime.activeStyleNode.parentNode.removeChild(runtime.activeStyleNode);
-  }
-  const node = document.createElement("link");
-  node.rel = "stylesheet";
-  node.href = href;
-  document.head.appendChild(node);
-  runtime.activeStyleNode = node;
+  await ensureStyleLoaded(runtime, href);
 }
 
 function mountViewport() {
@@ -70,7 +61,7 @@ async function start() {
 
   host.style.width = runtime.profile.width + "px";
   host.style.height = "";
-  ensureViewportStyle(runtime.profile.style);
+  await ensureViewportStyle(runtime.profile.style);
 
   await sharedRuntime.ensureLoaded();
   mountViewport();
