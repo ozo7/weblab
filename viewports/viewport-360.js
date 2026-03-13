@@ -54,7 +54,7 @@ export function createViewport360(options) {
 
   const defaultSession = {
     navOpen: false,
-    sidePanelOpen: false,
+    sidePaneMode: "closed",
     activeScreen: null,
     tagsEnabled: false,
     tagChooserOpen: false,
@@ -64,7 +64,12 @@ export function createViewport360(options) {
   const session = settingsStore.getViewportSession("360", defaultSession);
   queueCore.loadSnapshot(session.queue);
   let navOpen = true;
-  let sidePanelOpen = session.sidePanelOpen === true;
+  const initialSidePaneMode = typeof session.sidePaneMode === "string"
+    ? session.sidePaneMode
+    : (session.sidePanelOpen === true ? "open" : "closed");
+  let sidePaneMode = initialSidePaneMode === "open" || initialSidePaneMode === "partial" || initialSidePaneMode === "closed"
+    ? initialSidePaneMode
+    : "closed";
   let activeScreen = session.activeScreen === "sitemap" || session.activeScreen === "queue" ? session.activeScreen : null;
   let tagsEnabled = session.tagsEnabled === true;
   let tagChooserOpen = tagsEnabled && session.tagChooserOpen === true;
@@ -120,6 +125,8 @@ export function createViewport360(options) {
   const screenLayer = host.querySelector(".wv360-screen-layer");
   const screenTitle = host.querySelector(".wv360-screen-title");
   const screenBody = host.querySelector(".wv360-screen-body");
+  const sidePane = host.querySelector(".wv360-side-pane");
+  const sideToggleButton = host.querySelector('[data-action="toggle-side-pane"]');
   const sideMenus = host.querySelector('[data-role="side-menus"]');
   const clearQueueButton = host.querySelector('[data-action="clear-queue"]');
   const queueButton = host.querySelector('[data-action="queue"]');
@@ -130,7 +137,7 @@ export function createViewport360(options) {
   function persistSession() {
     settingsStore.setViewportSession("360", {
       navOpen,
-      sidePanelOpen,
+      sidePaneMode,
       activeScreen,
       tagsEnabled,
       tagChooserOpen,
@@ -146,21 +153,40 @@ export function createViewport360(options) {
     persistSession();
   }
 
-  function setSidePanelOpen(open) {
-    sidePanelOpen = Boolean(open);
-    shell.dataset.sidePane = sidePanelOpen ? "open" : "closed";
-    const sideToggleButton = host.querySelector('[data-action="toggle-side-pane"]');
+  function setSidePaneMode(mode) {
+    sidePaneMode = mode === "open" || mode === "partial" || mode === "closed" ? mode : "closed";
+    shell.dataset.sidePane = sidePaneMode;
     if (sideToggleButton) {
-      sideToggleButton.setAttribute("aria-label", sidePanelOpen ? "Close side pane" : "Open side pane");
+      if (sidePaneMode === "open") {
+        sideToggleButton.setAttribute("aria-label", "Partially hide side pane");
+      } else if (sidePaneMode === "partial") {
+        sideToggleButton.setAttribute("aria-label", "Close side pane");
+      } else {
+        sideToggleButton.setAttribute("aria-label", "Open side pane");
+      }
     }
     persistSession();
   }
 
-  function openArticle(articleId) {
+  function openArticle(articleId, options) {
     if (!articleId || !articleMap.has(articleId)) {
       return;
     }
+    const sidePaneModeOnClick = options && typeof options.sidePaneModeOnClick === "string"
+      ? options.sidePaneModeOnClick
+      : null;
     navigation.openArticleById(articleId);
+    const fromSidePane = Boolean(options && options.fromSidePane);
+    if (!fromSidePane) {
+      return;
+    }
+    if (sidePaneModeOnClick === "open") {
+      setSidePaneMode("closed");
+      return;
+    }
+    if (sidePaneModeOnClick === "partial") {
+      setSidePaneMode("partial");
+    }
   }
 
   function renderQuickNav() {
@@ -361,7 +387,7 @@ export function createViewport360(options) {
           navigation.setNavArea("menus");
           const articleId = siteMap.openNode(node.nodeId);
           if (articleId) {
-            openArticle(articleId);
+            openArticle(articleId, { fromSidePane: true, sidePaneModeOnClick: sidePaneMode });
           }
         }
       );
@@ -394,7 +420,7 @@ export function createViewport360(options) {
         navigation.setNavArea("menus");
         const articleId = siteMap.openNode(node.nodeId);
         if (articleId) {
-          openArticle(articleId);
+          openArticle(articleId, { fromSidePane: true, sidePaneModeOnClick: sidePaneMode });
         }
       }
     );
@@ -579,9 +605,35 @@ export function createViewport360(options) {
       openArticle(around.nextId);
     }
   });
-  host.querySelector('[data-action="toggle-side-pane"]').addEventListener("click", () => {
-    setSidePanelOpen(!sidePanelOpen);
+  sideToggleButton.addEventListener("click", () => {
+    if (sidePaneMode === "closed") {
+      setSidePaneMode("open");
+      return;
+    }
+    if (sidePaneMode === "open") {
+      setSidePaneMode("partial");
+      return;
+    }
+    setSidePaneMode("closed");
   });
+
+  const onDocumentClick = (event) => {
+    if (sidePaneMode === "closed") {
+      return;
+    }
+    const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+    const clickedInsidePane = Boolean(sidePane && path.includes(sidePane));
+    const clickedToggle = Boolean(sideToggleButton && path.includes(sideToggleButton));
+    if (clickedInsidePane || clickedToggle) {
+      return;
+    }
+    if (!(event.target instanceof Node)) {
+      setSidePaneMode("closed");
+      return;
+    }
+    setSidePaneMode("closed");
+  };
+  document.addEventListener("click", onDocumentClick);
 
   const onKeyDown = (event) => {
     if (event.key === "Escape") {
@@ -593,15 +645,15 @@ export function createViewport360(options) {
         closeScreen();
         return;
       }
-      if (sidePanelOpen) {
-        setSidePanelOpen(false);
+      if (sidePaneMode !== "closed") {
+        setSidePaneMode("closed");
       }
     }
   };
   window.addEventListener("keydown", onKeyDown);
 
   setNavOpen(navOpen);
-  setSidePanelOpen(sidePanelOpen);
+  setSidePaneMode(sidePaneMode);
   renderAll();
 
   const startupArticleId = session.selectedArticleId && articleMap.has(session.selectedArticleId)
@@ -621,6 +673,7 @@ export function createViewport360(options) {
       }
       unsubscribe();
       window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("click", onDocumentClick);
       host.innerHTML = "";
     }
   };
