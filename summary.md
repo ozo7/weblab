@@ -9,6 +9,10 @@
 7. Added file-backed settings API in `server.js` using `config/settings.json` (`GET/POST /api/settings`) and configured path in `config/manual-settings.json`.
 8. Added shared settings persistence core `core/settings-store.js` (no `localStorage`) and queue logic core `core/queue-core.js`.
 9. Activated real `720` viewport (`viewports/viewport-720.js` + `styles/viewport-720.css`) with slide-over rail, Esc/scrim close, persisted rail/session state, and sitemap/tag-driven queue.
+10. Split host alignment by viewport rule: `1080` stays flush-left; `720` and `360` are centered in their viewport CSS files.
+11. Activated real `360` viewport (`viewports/viewport-360.js` + `styles/viewport-360.css`) reusing core queue/sitemap/tag logic (same behavior model as 720) with 360-specific overlay layout.
+12. Fixed 360 overlay visibility by honoring `[hidden]` state in CSS and defaulting nav overlay open for quick access.
+13. Fixed 360 mock behavior: Lab now applies fixed height for viewport `360` from profile so mobile overlays stay pinned while content scrolls inside the mock screen.
 
 ## Always-Enforced Guidelines
 
@@ -19,6 +23,7 @@
 5. Viewport-specific JS lives only in `viewports/viewport-*.js`; shared core files must stay viewport-agnostic.
 6. Never use `!important` in project-owned CSS; fix selector scope and load/order instead.
 7. Never use `localStorage`; persistence must be file-backed through server settings APIs.
+8. For mobile viewport mocks, keep the simulated viewport height fixed from profile settings so overlay controls stay anchored to the mock screen.
 
 # Next Steps Summary
 
@@ -26,6 +31,5 @@
 2. Extract parity gaps: compare current Lab 1080 behavior vs `rail1080` and list missing features only.
 3. Fill shared core first: move any missing link resolution/runtime hooks into `core/*` (no viewport-specific logic there).
 4. Harden viewport contract: keep `viewports/viewport-1080.js` UI-only; no direct fetch/state logic.
-5. Implement `720` adapter + CSS on same core APIs, test in Lab toggle.
-6. Implement `360` adapter + CSS on same core APIs, test in Lab toggle.
-7. Add a small “profile smoke test” checklist and run it for all 3 viewports before deployment work.
+5. Run a manual parity pass for 360 overlay UX against `../webview-360` and list intentional deltas.
+6. Add a small “profile smoke test” checklist and run it for all 3 viewports before deployment work.
