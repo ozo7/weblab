@@ -1,5 +1,55 @@
 ## Recent Session Updates
 
+### Latest Updates (Architect-Led Core Extraction Audit Chunks)
+
+1. Added audit planning docs:
+   - `docs/audit/viewport-core-extraction-map.md`
+   - `docs/audit/viewport-core-contracts.md`
+2. Extracted shared nav tree/title/history/outside-dismiss helpers into core and wired all 3 viewports:
+   - `core/nav-tree-view-helpers.js`
+   - `core/navarea-history-screen.js`
+   - `core/overlay-dismiss.js`
+3. Extracted shared nav row builders and tree rendering helpers, reused by 1080/720/360:
+   - `core/nav-tree-row-builders.js`
+   - `core/nav-tree-renderer.js`
+   - `core/nav-tree-builder-factory.js`
+4. Extracted shared nav area mode/menu activation helpers for 1080/720:
+   - `core/nav-area-controller.js`
+   - `core/nav-area-mode.js`
+5. Extracted shared nav area tags and configuration UI helpers:
+   - `core/navarea-tags-screen.js`
+   - `core/navarea-configuration-panel.js`
+   - `core/configuration-controls.js`
+   - `core/configuration-preview-builder.js`
+6. Extracted shared subscription helper and wired teardown consistency:
+   - `core/viewport-subscriptions.js`
+7. Viewports now keep viewport-specific geometry/behavior while reusing shared object/UI core across 1080/720/360.
+
+### Latest Updates (360 NavArea/Paging + Shared Fallback Reuse)
+
+1. Reworked `360` hamburger dropdown to match `720` style/behavior: vertical menu box, left of hamburger on same baseline, with `home` as first item.
+2. Rebuilt `360` navArea screens around shared objects (`Navigation`, `TagPool`, `PagingQueue`, `Configuration`) and removed legacy queue/tag chooser paths.
+3. Added `360` Paging Mode flow:
+   - `Enter Pagination Mode` commits selected tag pages to `PagingQueue`.
+   - first queued page is navigated on mode entry.
+   - bottom overlay paging controls (`<`, `Paging i / X`, `>`) navigate via `Navigation`.
+   - top-right close exits paging mode.
+4. Converted paging controls to true overlay behavior so normal article content keeps loading/interaction under controls.
+5. Hid conflicting controls in `360` navArea/paging contexts (hamburger/menu/side-toggle according to mode rules).
+6. Updated `360` History selection to open selected page and close navArea.
+7. Updated `360` Configuration screen:
+   - removed duplicate title.
+   - enlarged illustration model with 3 style-category blocks.
+   - added diagonal `Illustration Demo` watermark.
+   - grouped Pastell picker + Pastell scheme button together; Pastell shown first.
+   - fixed picker drag/render loop by avoiding full-screen rebuild on pastel color drag and updating preview in place.
+8. Enforced no-empty-content fallback when leaving navAreas, then refactored to reusable shared helper:
+   - new shared module: `core/article-fallback.js`.
+   - reused in `viewports/viewport-1080.js`, `viewports/viewport-720.js`, `viewports/viewport-360.js`.
+   - wired `articleMap` into 1080 viewport creation in `lab/lab.js`.
+9. Removed obsolete always-visible `360` overlay buttons (`Home`, old `<`, old `>`).
+10. Pushed integrated changes in commit `98725c6` (`master`).
+
 ### Latest Updates (Shared Color Scheme Contract Across 1080/720/360)
 
 1. Added a shared color-scheme stylesheet loader `core/color-scheme-style.js` and wired it in app/lab startup so selected scheme CSS is loaded dynamically.
