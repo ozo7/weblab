@@ -1,3 +1,14 @@
+## Latest Updates (Version 1.4: Version Source + First-Run Home/Menu Guard)
+
+1. Added single-source versioning via root `VERSION` file and bumped to `webviewer-v-1-4`.
+2. Wired version source to runtime surfaces:
+   - server startup banner now reads `VERSION` (`server.js`)
+   - app/lab browser tab titles load from `/VERSION` on startup (`app/app.js`, `lab/lab.js`)
+   - fallback HTML titles simplified (`app/app.html`, `lab/lab.html`).
+3. Fixed first-run/private-window startup behavior:
+   - when no local user state exists, runtime skips restoring persisted UI object snapshots
+   - startup now correctly lands on homepage/menu instead of configuration (`core/settings-store.js`, `core/shared-runtime.js`).
+
 ## Latest Updates (Version 1.3: Theming Completeness + In-Model Scrollbar Preview)
 
 1. Enabled real multi-user-safe preference persistence split in `core/settings-store.js`:

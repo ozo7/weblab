@@ -44,6 +44,22 @@ const runtime = {
   resizeSettleTimer: null
 };
 
+async function applyDocumentTitle() {
+  try {
+    const response = await fetch("/VERSION", { cache: "no-store" });
+    if (!response.ok) {
+      return;
+    }
+    const versionLabel = String(await response.text()).trim();
+    if (!versionLabel) {
+      return;
+    }
+    document.title = versionLabel + "-lab";
+  } catch (_) {
+    // Keep fallback title from HTML when version file is unavailable.
+  }
+}
+
 const sharedRuntime = createSharedRuntimeSession({
   getActivePane() {
     return runtime.activeViewportInstance ? runtime.activeViewportInstance.articlePane : null;
@@ -720,6 +736,7 @@ function renderControls(defaultViewport) {
 }
 
 async function start() {
+  await applyDocumentTitle();
   const profileConfig = await loadProfiles();
   runtime.profiles = profileConfig.profiles || {};
   await ensureSharedRuntime();

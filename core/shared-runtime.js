@@ -259,29 +259,34 @@ export function createSharedRuntimeSession(options) {
     });
     runtime.objects.configuration = createConfigurationObject({});
 
-    const siteMapSnapshot = runtime.settingsStore.getObjectSnapshot("siteMap", runtime.siteMap.createSnapshot());
-    runtime.siteMap.loadSnapshot(siteMapSnapshot);
-    const navigationSnapshot = runtime.settingsStore.getObjectSnapshot("navigation", runtime.objects.navigation.createSnapshot());
-    if (
-      (!navigationSnapshot.navigationHistory || typeof navigationSnapshot.navigationHistory !== "object")
-      && runtime.settingsStore.hasObjectSnapshot("pagingHistory")
-    ) {
-      navigationSnapshot.navigationHistory = runtime.settingsStore.getObjectSnapshot("pagingHistory", { entries: [], max: 20 });
+    const hasLocalUserState = typeof runtime.settingsStore.hasLocalUserState === "function"
+      ? runtime.settingsStore.hasLocalUserState()
+      : false;
+    if (hasLocalUserState) {
+      const siteMapSnapshot = runtime.settingsStore.getObjectSnapshot("siteMap", runtime.siteMap.createSnapshot());
+      runtime.siteMap.loadSnapshot(siteMapSnapshot);
+      const navigationSnapshot = runtime.settingsStore.getObjectSnapshot("navigation", runtime.objects.navigation.createSnapshot());
+      if (
+        (!navigationSnapshot.navigationHistory || typeof navigationSnapshot.navigationHistory !== "object")
+        && runtime.settingsStore.hasObjectSnapshot("pagingHistory")
+      ) {
+        navigationSnapshot.navigationHistory = runtime.settingsStore.getObjectSnapshot("pagingHistory", { entries: [], max: 20 });
+      }
+      runtime.objects.navigation.loadSnapshot(navigationSnapshot);
+      runtime.objects.tagPool.loadSnapshot(
+        runtime.settingsStore.getObjectSnapshot("tagPool", runtime.objects.tagPool.createSnapshot())
+      );
+      runtime.objects.pagingQueue.loadSnapshot(
+        runtime.settingsStore.getObjectSnapshot("pagingQueue", runtime.objects.pagingQueue.createSnapshot())
+      );
+      runtime.objects.internalLinks.loadSnapshot(
+        runtime.settingsStore.getObjectSnapshot("internalLinks", runtime.objects.internalLinks.createSnapshot())
+      );
+      runtime.objects.configuration.loadSnapshot(
+        runtime.settingsStore.getObjectSnapshot("configuration", runtime.objects.configuration.createSnapshot())
+      );
     }
-    runtime.objects.navigation.loadSnapshot(navigationSnapshot);
-    runtime.objects.tagPool.loadSnapshot(
-      runtime.settingsStore.getObjectSnapshot("tagPool", runtime.objects.tagPool.createSnapshot())
-    );
-    runtime.objects.pagingQueue.loadSnapshot(
-      runtime.settingsStore.getObjectSnapshot("pagingQueue", runtime.objects.pagingQueue.createSnapshot())
-    );
     runtime.objects.tagPool.bindPagingQueue(runtime.objects.pagingQueue, { syncNow: true });
-    runtime.objects.internalLinks.loadSnapshot(
-      runtime.settingsStore.getObjectSnapshot("internalLinks", runtime.objects.internalLinks.createSnapshot())
-    );
-    runtime.objects.configuration.loadSnapshot(
-      runtime.settingsStore.getObjectSnapshot("configuration", runtime.objects.configuration.createSnapshot())
-    );
 
     // Navigation object owns current navigation state for inspector/next migrations.
     const siteMapState = runtime.siteMap.readState();

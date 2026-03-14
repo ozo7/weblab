@@ -8,6 +8,7 @@ const { URL } = require("url");
 
 const ROOT_DIR = __dirname;
 const SETTINGS_PATH = path.join(ROOT_DIR, "config", "manual-settings.json");
+const VERSION_PATH = path.join(ROOT_DIR, "VERSION");
 
 const DEFAULTS = {
   server: {
@@ -59,6 +60,15 @@ function readSettings() {
 }
 
 const SETTINGS = readSettings();
+const VERSION_LABEL = (() => {
+  try {
+    const raw = fs.readFileSync(VERSION_PATH, "utf8");
+    const value = String(raw || "").trim();
+    return value || "webviewer";
+  } catch (_) {
+    return "webviewer";
+  }
+})();
 const HOST = String(process.env.WEBVIEWER_HOST || process.env.WEBLAB_HOST || SETTINGS.server.host || DEFAULTS.server.host);
 const PORT = Number(process.env.WEBVIEWER_PORT || process.env.WEBLAB_PORT || SETTINGS.server.port || DEFAULTS.server.port);
 const MAX_BODY_BYTES = Number(SETTINGS.server.maxBodyBytes || DEFAULTS.server.maxBodyBytes);
@@ -338,5 +348,5 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(PORT, HOST, () => {
-  process.stdout.write("webviewer-v-1-1 server listening on http://" + HOST + ":" + PORT + "\n");
+  process.stdout.write(VERSION_LABEL + " server listening on http://" + HOST + ":" + PORT + "\n");
 });

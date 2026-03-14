@@ -38,6 +38,15 @@ function ensureShape(target) {
   return target;
 }
 
+function hasMeaningfulLocalUserState(snapshot) {
+  if (!snapshot || !snapshot.app) {
+    return false;
+  }
+  const viewportSessions = isObject(snapshot.app.viewportSessions) ? snapshot.app.viewportSessions : {};
+  const objects = isObject(snapshot.app.objects) ? snapshot.app.objects : {};
+  return Object.keys(viewportSessions).length > 0 || Object.keys(objects).length > 0;
+}
+
 function readLocalStorageSettings() {
   if (typeof window === "undefined" || !window.localStorage) {
     return createEmptySettings();
@@ -74,6 +83,7 @@ export function createSettingsStore() {
   let pendingPersist = Promise.resolve();
   let dirtyLocal = false;
   let dirtyRemote = false;
+  let localUserStateAvailable = false;
 
   function mergeSettings() {
     const next = createEmptySettings();
@@ -114,12 +124,15 @@ export function createSettingsStore() {
 
   async function load() {
     localSettings = ensureShape(readLocalStorageSettings());
+    localUserStateAvailable = hasMeaningfulLocalUserState(localSettings);
     try {
       remoteSettings = ensureShape(await fetchJson("/api/settings", { cache: "no-store" }));
     } catch (_) {
       remoteSettings = createEmptySettings();
     }
-    migrateLegacyRemoteSettingsToLocal();
+    if (localUserStateAvailable) {
+      migrateLegacyRemoteSettingsToLocal();
+    }
     mergeSettings();
     return cloneJson(settings);
   }
@@ -175,6 +188,10 @@ export function createSettingsStore() {
     return isObject(settings.app.objects[objectKey]);
   }
 
+  function hasLocalUserState() {
+    return localUserStateAvailable;
+  }
+
   async function persistNow() {
     pendingPersist = pendingPersist.then(async () => {
       if (dirtyLocal) {
@@ -219,6 +236,7 @@ export function createSettingsStore() {
     setViewportSession,
     getObjectSnapshot,
     hasObjectSnapshot,
+    hasLocalUserState,
     setObjectSnapshot,
     schedulePersist,
     persistNow
