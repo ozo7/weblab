@@ -1,27 +1,6 @@
-import { createQueueCore } from "../core/queue-core.js";
+import { createColorPicker } from "../core/color-picker.js";
+import { getReadableTextColor } from "../core/color-schemes.js";
 import { createButton, getDepthClass } from "../core/nav-rail-utils.js";
-
-function uniqueArticleOrder(topLevel, articleMap) {
-  const ids = [];
-  const seen = new Set();
-  function walk(entries) {
-    if (!Array.isArray(entries)) {
-      return;
-    }
-    entries.forEach((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return;
-      }
-      if (typeof entry.articleId === "string" && articleMap.has(entry.articleId) && !seen.has(entry.articleId)) {
-        seen.add(entry.articleId);
-        ids.push(entry.articleId);
-      }
-      walk(entry.children);
-    });
-  }
-  walk(topLevel);
-  return ids;
-}
 
 function getQueueAround(queueIds, currentId) {
   const index = queueIds.indexOf(currentId);
@@ -31,60 +10,51 @@ function getQueueAround(queueIds, currentId) {
   };
 }
 
+function asPreviewColor(value, fallback) {
+  return typeof value === "string" && value ? value : fallback;
+}
+
 export function createViewport360(options) {
   const host = options.host;
   const navigation = options.navigation;
   const siteMap = options.siteMap;
+  const tagPool = options.tagPool || null;
+  const pagingQueue = options.pagingQueue || null;
+  const configuration = options.configuration || null;
   const settingsStore = options.settingsStore;
-  const websiteTopLevel = Array.isArray(options.websiteTopLevel) ? options.websiteTopLevel : [];
   const articleMap = options.articleMap instanceof Map ? options.articleMap : new Map();
-  const tagMap = options.tagMap && typeof options.tagMap === "object" ? options.tagMap : {};
   const homeArticleId = options.homeArticleId || null;
-  const allArticleIds = uniqueArticleOrder(websiteTopLevel, articleMap);
-
-  const queueCore = createQueueCore({
-    topLevel: websiteTopLevel,
-    articleMap,
-    tagMap
-  });
 
   const fallbackArticleId = homeArticleId && articleMap.has(homeArticleId)
     ? homeArticleId
-    : (allArticleIds[0] || null);
+    : (navigation.readState().landingArticleId || null);
 
   const defaultSession = {
     navOpen: false,
     sidePaneMode: "closed",
     activeScreen: null,
-    tagsEnabled: false,
-    tagChooserOpen: false,
-    selectedArticleId: fallbackArticleId,
-    queue: queueCore.createSnapshot()
+    selectedArticleId: fallbackArticleId
   };
   const session = settingsStore.getViewportSession("360", defaultSession);
-  queueCore.loadSnapshot(session.queue);
-  let navOpen = true;
-  const initialSidePaneMode = typeof session.sidePaneMode === "string"
+
+  let navOpen = session.navOpen === true;
+  let sidePaneMode = session.sidePaneMode === "open" || session.sidePaneMode === "partial" || session.sidePaneMode === "closed"
     ? session.sidePaneMode
-    : (session.sidePanelOpen === true ? "open" : "closed");
-  let sidePaneMode = initialSidePaneMode === "open" || initialSidePaneMode === "partial" || initialSidePaneMode === "closed"
-    ? initialSidePaneMode
     : "closed";
-  let activeScreen = session.activeScreen === "sitemap" || session.activeScreen === "queue" ? session.activeScreen : null;
-  let tagsEnabled = session.tagsEnabled === true;
-  let tagChooserOpen = tagsEnabled && session.tagChooserOpen === true;
-  let tagSessionDeselectCount = 0;
-  let draftSelectedTags = null;
-  let sitemapClickTimer = null;
+  let activeScreen = session.activeScreen === "tags" || session.activeScreen === "history" || session.activeScreen === "configuration"
+    ? session.activeScreen
+    : null;
+  let configPreviewKey = configuration && typeof configuration.readState === "function"
+    ? configuration.readState().selectedSchemeKey
+    : "minty-premature";
 
   host.innerHTML = [
-    '<section class="wv360-shell cs-shell" data-nav="closed">',
+    '<section class="wv360-shell cs-shell" data-nav="closed" data-side-pane="closed">',
     '  <section class="wv360-nav-pane">',
     '    <div class="wv360-overlay-stack">',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="sitemap">Sitemap</button>',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="tags">Tags: hidden</button>',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="queue">Selected Pages (0)</button>',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-close-half" data-action="close-nav">Close</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="open-tags">tags</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="open-history">history</button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="open-configuration">configuration</button>',
     "    </div>",
     "  </section>",
     '  <section class="wv360-content-pane">',
@@ -96,9 +66,6 @@ export function createViewport360(options) {
     '      <button type="button" class="wv360-pill cs-floating-btn" data-action="prev" aria-label="Previous"><</button>',
     '      <button type="button" class="wv360-pill cs-floating-btn" data-action="next" aria-label="Next">></button>',
     "    </div>",
-    '    <div class="wv360-tag-chooser" hidden></div>',
-    '    <button type="button" class="wv360-tag-action" data-action="tag-anchor" hidden>Tags</button>',
-    '    <button type="button" class="wv360-tag-action wv360-clear-all" data-action="clear-tags" hidden>Clear All</button>',
     '    <button type="button" class="wv360-side-toggle cs-floating-btn" data-action="toggle-side-pane" aria-label="Open side pane"></button>',
     '    <aside class="wv360-side-pane cs-rail" aria-label="Side pane">',
     '      <div class="wv360-side-pane-scroll" data-role="side-menus"></div>',
@@ -108,7 +75,6 @@ export function createViewport360(options) {
     '  <section class="wv360-screen-layer" hidden aria-hidden="true">',
     '    <header class="wv360-screen-head cs-panel-head">',
     '      <h2 class="wv360-screen-title cs-section-head"></h2>',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-screen-clear" data-action="clear-queue" hidden>Clear All</button>',
     '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-close-half" data-action="close-screen">></button>',
     "    </header>",
     '    <div class="wv360-screen-body"></div>',
@@ -119,18 +85,15 @@ export function createViewport360(options) {
   const shell = host.querySelector(".wv360-shell");
   const pane = host.querySelector("#pane2main");
   const navPane = host.querySelector(".wv360-nav-pane");
-  const tagChooser = host.querySelector(".wv360-tag-chooser");
-  const tagAnchor = host.querySelector('[data-action="tag-anchor"]');
-  const clearTagsButton = host.querySelector('[data-action="clear-tags"]');
   const screenLayer = host.querySelector(".wv360-screen-layer");
   const screenTitle = host.querySelector(".wv360-screen-title");
   const screenBody = host.querySelector(".wv360-screen-body");
   const sidePane = host.querySelector(".wv360-side-pane");
   const sideToggleButton = host.querySelector('[data-action="toggle-side-pane"]');
   const sideMenus = host.querySelector('[data-role="side-menus"]');
-  const clearQueueButton = host.querySelector('[data-action="clear-queue"]');
-  const queueButton = host.querySelector('[data-action="queue"]');
-  const tagsToggleButton = host.querySelector('[data-action="tags"]');
+  const tagsOpenButton = host.querySelector('[data-action="open-tags"]');
+  const historyOpenButton = host.querySelector('[data-action="open-history"]');
+  const configurationOpenButton = host.querySelector('[data-action="open-configuration"]');
   const prevButton = host.querySelector('[data-action="prev"]');
   const nextButton = host.querySelector('[data-action="next"]');
 
@@ -139,10 +102,7 @@ export function createViewport360(options) {
       navOpen,
       sidePaneMode,
       activeScreen,
-      tagsEnabled,
-      tagChooserOpen,
-      selectedArticleId: navigation.readState().selectedArticleId || fallbackArticleId,
-      queue: queueCore.createSnapshot()
+      selectedArticleId: navigation.readState().selectedArticleId || fallbackArticleId
     });
     settingsStore.schedulePersist(120);
   }
@@ -156,15 +116,23 @@ export function createViewport360(options) {
   function setSidePaneMode(mode) {
     sidePaneMode = mode === "open" || mode === "partial" || mode === "closed" ? mode : "closed";
     shell.dataset.sidePane = sidePaneMode;
-    if (sideToggleButton) {
-      if (sidePaneMode === "open") {
-        sideToggleButton.setAttribute("aria-label", "Partially hide side pane");
-      } else if (sidePaneMode === "partial") {
-        sideToggleButton.setAttribute("aria-label", "Close side pane");
-      } else {
-        sideToggleButton.setAttribute("aria-label", "Open side pane");
-      }
+    if (sidePaneMode === "open") {
+      sideToggleButton.setAttribute("aria-label", "Partially hide side pane");
+    } else if (sidePaneMode === "partial") {
+      sideToggleButton.setAttribute("aria-label", "Close side pane");
+    } else {
+      sideToggleButton.setAttribute("aria-label", "Open side pane");
     }
+    persistSession();
+  }
+
+  function setActiveScreen(nextScreen) {
+    activeScreen = nextScreen === "tags" || nextScreen === "history" || nextScreen === "configuration" ? nextScreen : null;
+    const navArea = activeScreen || "menus";
+    if (typeof navigation.setNavArea === "function") {
+      navigation.setNavArea(navArea);
+    }
+    renderAll();
     persistSession();
   }
 
@@ -172,176 +140,17 @@ export function createViewport360(options) {
     if (!articleId || !articleMap.has(articleId)) {
       return;
     }
-    const sidePaneModeOnClick = options && typeof options.sidePaneModeOnClick === "string"
-      ? options.sidePaneModeOnClick
-      : null;
     navigation.openArticleById(articleId);
-    const fromSidePane = Boolean(options && options.fromSidePane);
-    if (!fromSidePane) {
+    if (!(options && options.fromSidePane)) {
       return;
     }
-    if (sidePaneModeOnClick === "open") {
+    if (sidePaneMode === "open") {
       setSidePaneMode("closed");
       return;
     }
-    if (sidePaneModeOnClick === "partial") {
+    if (sidePaneMode === "partial") {
       setSidePaneMode("partial");
     }
-  }
-
-  function renderQuickNav() {
-    const queue = queueCore.getQueue();
-    const runtime = navigation.readState();
-    const around = getQueueAround(queue, runtime.selectedArticleId);
-    prevButton.disabled = !around.previousId;
-    nextButton.disabled = !around.nextId;
-  }
-
-  function renderTagChooser() {
-    tagChooser.innerHTML = "";
-    if (!(tagsEnabled && tagChooserOpen)) {
-      tagChooser.hidden = true;
-      return;
-    }
-    tagChooser.hidden = false;
-    const selected = draftSelectedTags instanceof Set
-      ? new Set(draftSelectedTags)
-      : new Set(queueCore.getSelectedTags());
-    queueCore.allTags.forEach((tag) => {
-      const chip = createButton(tag, "wv360-chooser-chip cs-chip-btn" + (selected.has(tag) ? " is-selected active" : ""), () => {
-        const hadTag = selected.has(tag);
-        if (!(draftSelectedTags instanceof Set)) {
-          draftSelectedTags = new Set(queueCore.getSelectedTags());
-        }
-        if (hadTag) {
-          draftSelectedTags.delete(tag);
-        } else {
-          draftSelectedTags.add(tag);
-        }
-        if (hadTag) {
-          tagSessionDeselectCount += 1;
-        }
-        renderAll();
-      });
-      tagChooser.appendChild(chip);
-    });
-  }
-
-  function renderTagsUi() {
-    const selectedTags = draftSelectedTags instanceof Set
-      ? Array.from(draftSelectedTags)
-      : queueCore.getSelectedTags();
-    tagsToggleButton.textContent = tagsEnabled ? "Tags: On" : "Tags: hidden";
-    queueButton.textContent = "Selected Pages (" + queueCore.getQueue().length + ")";
-    tagAnchor.hidden = !tagsEnabled;
-    tagAnchor.textContent = selectedTags.length ? "Tags (" + selectedTags.length + ")" : "Tags";
-    clearTagsButton.hidden = !tagsEnabled || !tagChooserOpen || tagSessionDeselectCount < 2 || selectedTags.length === 0;
-    renderTagChooser();
-  }
-
-  function createQueueList(queueIds, className, itemClassName) {
-    const wrap = document.createElement("div");
-    wrap.className = className;
-    if (!queueIds.length) {
-      const empty = document.createElement("div");
-      empty.className = "wv360-empty cs-empty";
-      empty.textContent = "No queued articles yet.";
-      wrap.appendChild(empty);
-      return wrap;
-    }
-    queueIds.forEach((articleId, index) => {
-      const article = articleMap.get(articleId);
-      if (!article) {
-        return;
-      }
-      const button = createButton(
-        String(index + 1) + ". " + article.title,
-        itemClassName + " cs-list-btn" + (navigation.readState().selectedArticleId === articleId ? " is-current active" : "") + (queueCore.isQueued(articleId) ? " is-queued" : ""),
-        () => openArticle(articleId)
-      );
-      wrap.appendChild(button);
-    });
-    return wrap;
-  }
-
-  function renderTree(container) {
-    container.innerHTML = "";
-    const selectedArticleId = navigation.readState().selectedArticleId;
-    const tree = siteMap.getTreeModel(selectedArticleId);
-
-    function toggleSitemapSelection(articleId) {
-      queueCore.toggleSitemapSelection(articleId);
-      renderAll();
-      persistSession();
-    }
-
-    function clearSitemapClickTimer() {
-      if (sitemapClickTimer) {
-        window.clearTimeout(sitemapClickTimer);
-        sitemapClickTimer = null;
-      }
-    }
-
-    function bindSitemapButton(button, articleId) {
-      button.addEventListener("click", () => {
-        clearSitemapClickTimer();
-        sitemapClickTimer = window.setTimeout(() => {
-          toggleSitemapSelection(articleId);
-          sitemapClickTimer = null;
-        }, 220);
-      });
-      button.addEventListener("dblclick", () => {
-        clearSitemapClickTimer();
-        openArticle(articleId);
-      });
-    }
-
-    tree.forEach((node) => {
-      if (node.type !== "menu" && node.type !== "article") {
-        return;
-      }
-      const canOpen = Boolean(node.isClickable && node.articleId);
-      const row = document.createElement("div");
-      row.className = "wv360-sitemap-row " + (node.type === "menu" ? "is-menu" : "is-article");
-      row.style.paddingLeft = String(Math.min(20 + node.depth * 14, 68)) + "px";
-
-      const main = document.createElement(canOpen ? "button" : "div");
-      if (canOpen) {
-        main.type = "button";
-      }
-      main.className = "wv360-sitemap-main cs-list-btn";
-      const title = node.type === "article"
-        ? ((articleMap.get(node.articleId) && articleMap.get(node.articleId).title) || node.title || node.articleId)
-        : (node.label && node.label.trim() ? node.label.trim() : "Section");
-      main.textContent = title;
-      if (canOpen && selectedArticleId === node.articleId && !queueCore.isQueued(node.articleId)) {
-        main.classList.add("is-current", "active");
-      }
-      if (canOpen && queueCore.isQueued(node.articleId)) {
-        main.classList.add("is-queued");
-      }
-      if (canOpen) {
-        bindSitemapButton(main, node.articleId);
-      } else {
-        main.classList.add("is-static");
-      }
-      row.appendChild(main);
-
-      if (node.type === "menu" && node.hasChildren) {
-        const expandButton = createButton(node.isExpanded ? "-" : "+", "wv360-sitemap-toggle cs-menu-toggle", () => {
-          siteMap.toggleNode(node.nodeId);
-          renderScreen();
-          persistSession();
-        });
-        row.appendChild(expandButton);
-      } else {
-        const spacer = document.createElement("div");
-        spacer.className = "wv360-sitemap-toggle-spacer";
-        row.appendChild(spacer);
-      }
-
-      container.appendChild(row);
-    });
   }
 
   function getNodeTitle(node) {
@@ -384,10 +193,12 @@ export function createViewport360(options) {
         getNodeTitle(node),
         "wv360-side-nav-btn cs-nav-btn" + (node.isActive ? " active" : ""),
         () => {
-          navigation.setNavArea("menus");
+          if (typeof navigation.setNavArea === "function") {
+            navigation.setNavArea("menus");
+          }
           const articleId = siteMap.openNode(node.nodeId);
           if (articleId) {
-            openArticle(articleId, { fromSidePane: true, sidePaneModeOnClick: sidePaneMode });
+            openArticle(articleId, { fromSidePane: true });
           }
         }
       );
@@ -417,10 +228,12 @@ export function createViewport360(options) {
       (isHomeRow ? "⌂ " : "") + getNodeTitle(node),
       "wv360-side-nav-btn cs-nav-btn" + (node.isActive ? " active" : ""),
       () => {
-        navigation.setNavArea("menus");
+        if (typeof navigation.setNavArea === "function") {
+          navigation.setNavArea("menus");
+        }
         const articleId = siteMap.openNode(node.nodeId);
         if (articleId) {
-          openArticle(articleId, { fromSidePane: true, sidePaneModeOnClick: sidePaneMode });
+          openArticle(articleId, { fromSidePane: true });
         }
       }
     );
@@ -430,9 +243,6 @@ export function createViewport360(options) {
   }
 
   function renderSideMenus() {
-    if (typeof navigation.setNavArea === "function" && navigation.readState().navArea !== "menus") {
-      navigation.setNavArea("menus");
-    }
     sideMenus.innerHTML = "";
     const tree = siteMap.getTreeModel(navigation.readState().selectedArticleId);
     tree.forEach((node) => {
@@ -446,25 +256,268 @@ export function createViewport360(options) {
     });
   }
 
-  function expandAllSitemapMenus() {
-    let changed = false;
-    let safety = 0;
-    while (safety < 500) {
-      safety += 1;
-      const visible = siteMap.getTreeModel(navigation.readState().selectedArticleId);
-      const nextCollapsed = visible.find((node) => node.type === "menu" && node.hasChildren && !node.isExpanded);
-      if (!nextCollapsed) {
-        break;
-      }
-      siteMap.toggleNode(nextCollapsed.nodeId);
-      changed = true;
+  function renderQuickNav() {
+    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
+      ? pagingQueue.getQueue()
+      : [];
+    const runtime = navigation.readState();
+    const around = getQueueAround(queue, runtime.selectedArticleId);
+    prevButton.disabled = !around.previousId;
+    nextButton.disabled = !around.nextId;
+  }
+
+  function createTagsScreenContent() {
+    const wrap = document.createElement("div");
+    wrap.className = "wv360-fullscreen-panel";
+
+    const head = document.createElement("div");
+    head.className = "wv360-history-head cs-section-head";
+    head.textContent = "Pages to read, selected by tags:";
+    wrap.appendChild(head);
+
+    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
+      ? pagingQueue.getQueue()
+      : [];
+    const selectedTagColors = tagPool && typeof tagPool.getSelectedTagColors === "function"
+      ? tagPool.getSelectedTagColors()
+      : {};
+    const selectedId = navigation.readState().selectedArticleId;
+    const currentIndex = queue.indexOf(selectedId);
+    const hasCurrentInQueue = currentIndex >= 0;
+
+    const queueList = document.createElement("div");
+    queueList.className = "wv360-history-list wv360-tags-queue-list";
+    if (!queue.length) {
+      const empty = document.createElement("div");
+      empty.className = "wv360-history-empty cs-empty";
+      empty.textContent = "No selected pages.";
+      queueList.appendChild(empty);
+    } else {
+      queue.forEach((articleId) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "wv360-history-item cs-list-btn" + (articleId === selectedId ? " active" : "");
+        item.addEventListener("click", () => navigation.openArticleById(articleId));
+
+        const selectedTagsFromPool = tagPool && typeof tagPool.getSelectedTagsForArticle === "function"
+          ? tagPool.getSelectedTagsForArticle(articleId)
+          : [];
+
+        const label = document.createElement("span");
+        label.className = "wv360-queue-label";
+        const article = articleMap.get(articleId);
+        label.textContent = article && article.title ? article.title : articleId;
+        item.appendChild(label);
+
+        const stripeWrap = document.createElement("span");
+        stripeWrap.className = "wv360-queue-stripes";
+        selectedTagsFromPool.forEach((tag) => {
+          const stripe = document.createElement("span");
+          stripe.className = "wv360-queue-stripe cs-queue-stripe";
+          stripe.style.backgroundColor = selectedTagColors[tag] || "#111111";
+          stripe.title = tag;
+          stripeWrap.appendChild(stripe);
+        });
+        item.appendChild(stripeWrap);
+        queueList.appendChild(item);
+      });
     }
-    return changed;
+    wrap.appendChild(queueList);
+
+    const controls = document.createElement("div");
+    controls.className = "wv360-tags-controls";
+    const prevId = hasCurrentInQueue && currentIndex > 0 ? queue[currentIndex - 1] : null;
+    const nextId = hasCurrentInQueue
+      ? (currentIndex < queue.length - 1 ? queue[currentIndex + 1] : null)
+      : (queue.length ? queue[0] : null);
+
+    const prevQueueButton = createButton("<", "wv360-tags-nav-btn cs-mini-nav-btn", () => {
+      if (prevId) {
+        navigation.openArticleById(prevId);
+      }
+    });
+    prevQueueButton.disabled = !prevId;
+    controls.appendChild(prevQueueButton);
+
+    const nextQueueButton = createButton(">", "wv360-tags-nav-btn cs-mini-nav-btn", () => {
+      if (nextId) {
+        navigation.openArticleById(nextId);
+      }
+    });
+    nextQueueButton.disabled = !nextId;
+    controls.appendChild(nextQueueButton);
+
+    const selectedCount = document.createElement("div");
+    selectedCount.className = "wv360-tags-selected cs-section-head";
+    selectedCount.textContent = "Selected: " + queue.length;
+    controls.appendChild(selectedCount);
+
+    const selectedTags = new Set(
+      tagPool && typeof tagPool.getSelectedTags === "function"
+        ? tagPool.getSelectedTags()
+        : []
+    );
+    const clearTags = createButton("Clear", "wv360-tag-clear wv360-tag-clear-inline cs-chip-btn", () => {
+      if (tagPool && typeof tagPool.clear === "function") {
+        tagPool.clear();
+      }
+    });
+    clearTags.disabled = selectedTags.size === 0;
+    controls.appendChild(clearTags);
+    wrap.appendChild(controls);
+
+    const tagWrap = document.createElement("div");
+    tagWrap.className = "wv360-tagpool";
+    const tagHead = document.createElement("div");
+    tagHead.className = "wv360-tagpool-head cs-section-head";
+    tagHead.textContent = "Tag pool:";
+    tagWrap.appendChild(tagHead);
+
+    const tags = tagPool && typeof tagPool.getAllTags === "function" ? tagPool.getAllTags() : [];
+    const tagList = document.createElement("div");
+    tagList.className = "wv360-tagpool-list";
+    tags.forEach((tag) => {
+      const color = selectedTagColors[tag];
+      const tagButton = createButton(
+        tag,
+        "wv360-tag-btn cs-chip-btn" + (selectedTags.has(tag) ? " active" : ""),
+        () => {
+          if (tagPool && typeof tagPool.toggleTag === "function") {
+            tagPool.toggleTag(tag);
+          }
+        }
+      );
+      if (color && selectedTags.has(tag)) {
+        tagButton.style.borderColor = color;
+        tagButton.style.backgroundColor = color;
+        tagButton.style.color = getReadableTextColor(color);
+      }
+      tagList.appendChild(tagButton);
+    });
+    tagWrap.appendChild(tagList);
+    wrap.appendChild(tagWrap);
+
+    return wrap;
+  }
+
+  function createHistoryScreenContent() {
+    const wrap = document.createElement("div");
+    wrap.className = "wv360-fullscreen-panel";
+
+    const head = document.createElement("div");
+    head.className = "wv360-history-head cs-section-head";
+    head.textContent = "Your last visited pages (max. 20):";
+    wrap.appendChild(head);
+
+    const historyList = Array.isArray(navigation.readState().navigationHistory)
+      ? navigation.readState().navigationHistory
+      : [];
+    if (!historyList.length) {
+      const empty = document.createElement("div");
+      empty.className = "wv360-history-empty cs-empty";
+      empty.textContent = "No visited pages yet.";
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    const list = document.createElement("div");
+    list.className = "wv360-history-list";
+    historyList.forEach((articleId, index) => {
+      const item = createButton(
+        String(index + 1) + ". " + articleId,
+        "wv360-history-item cs-list-btn",
+        () => navigation.openArticleById(articleId)
+      );
+      list.appendChild(item);
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function getConfigurationPreviewByKey(key) {
+    if (!configuration || typeof configuration.readState !== "function") {
+      return null;
+    }
+    const state = configuration.readState();
+    const schemes = Array.isArray(state.schemes) ? state.schemes : [];
+    return schemes.find((scheme) => scheme && scheme.key === key) || schemes[0] || null;
+  }
+
+  function createConfigurationScreenContent() {
+    const wrap = document.createElement("div");
+    wrap.className = "wv360-fullscreen-panel";
+
+    const sectionTitle = document.createElement("div");
+    sectionTitle.className = "wv360-history-head cs-section-head";
+    sectionTitle.textContent = "Configuration";
+    wrap.appendChild(sectionTitle);
+
+    const previewScheme = getConfigurationPreviewByKey(configPreviewKey);
+    const preview = previewScheme && previewScheme.preview ? previewScheme.preview : null;
+    if (preview) {
+      const mini = document.createElement("div");
+      mini.className = "wv360-config-mini cs-preview-card";
+      mini.style.maxWidth = "100%";
+      mini.style.background = asPreviewColor(preview.surface, "#F8FCF8");
+      mini.style.color = asPreviewColor(preview.text, "#17301F");
+      mini.style.borderColor = asPreviewColor(preview.border, "#B8CABC");
+      mini.innerHTML = [
+        '<div class="wv360-config-mini-top">',
+        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ";border-color:" + asPreviewColor(preview.border, "#B8CABC") + ";">menus / sitemap</span>',
+        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ";border-color:" + asPreviewColor(preview.border, "#B8CABC") + ";">☰</span>',
+        "</div>",
+        '<div class="wv360-config-mini-title">Theme Illustration: ' + previewScheme.label + "</div>"
+      ].join("\n");
+      wrap.appendChild(mini);
+    }
+
+    const state = configuration && typeof configuration.readState === "function" ? configuration.readState() : null;
+
+    const pastelRow = document.createElement("div");
+    pastelRow.className = "wv360-config-pastel-row";
+    const pastelLabel = document.createElement("label");
+    pastelLabel.className = "wv360-config-pastel-label cs-section-head";
+    pastelLabel.textContent = "Pastel base:";
+    pastelRow.appendChild(pastelLabel);
+    const pickerHost = document.createElement("div");
+    pastelRow.appendChild(pickerHost);
+    createColorPicker({
+      host: pickerHost,
+      initialHex: state && typeof state.pastelBaseColor === "string" ? state.pastelBaseColor : "#B76DC9",
+      onChange(nextHex) {
+        if (configuration && typeof configuration.setPastelBaseColor === "function") {
+          configuration.setPastelBaseColor(nextHex);
+        }
+      }
+    });
+    wrap.appendChild(pastelRow);
+
+    const schemeList = document.createElement("div");
+    schemeList.className = "wv360-config-scheme-list";
+    const schemes = state && Array.isArray(state.schemes) ? state.schemes : [];
+    const selectedKey = state && typeof state.selectedSchemeKey === "string" ? state.selectedSchemeKey : "";
+    schemes.forEach((scheme) => {
+      const previewModel = scheme && scheme.preview ? scheme.preview : {};
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "wv360-config-scheme-btn cs-scheme-btn" + (selectedKey === scheme.key ? " active" : "");
+      button.textContent = scheme.label;
+      button.style.background = asPreviewColor(previewModel.interactive, "#E5F1E8");
+      button.style.color = getReadableTextColor(asPreviewColor(previewModel.interactive, "#E5F1E8"));
+      button.style.borderColor = asPreviewColor(previewModel.border, "#B8CABC");
+      button.addEventListener("click", () => {
+        configPreviewKey = scheme.key;
+        renderScreen();
+      });
+      schemeList.appendChild(button);
+    });
+    wrap.appendChild(schemeList);
+
+    return wrap;
   }
 
   function renderScreen() {
     screenBody.innerHTML = "";
-    clearQueueButton.hidden = activeScreen !== "sitemap";
     if (!activeScreen) {
       screenLayer.hidden = true;
       screenLayer.setAttribute("aria-hidden", "true");
@@ -474,118 +527,77 @@ export function createViewport360(options) {
     screenLayer.hidden = false;
     screenLayer.setAttribute("aria-hidden", "false");
 
-    if (activeScreen === "queue") {
-      screenTitle.textContent = "Selected Pages (" + queueCore.getQueue().length + ")";
-      screenBody.appendChild(createQueueList(queueCore.getQueue(), "wv360-queue-list", "wv360-queue-item"));
+    if (activeScreen === "tags") {
+      screenTitle.textContent = "Tags";
+      screenBody.appendChild(createTagsScreenContent());
       return;
     }
 
-    screenTitle.textContent = "Sitemap";
-    const tree = document.createElement("div");
-    tree.className = "wv360-sitemap-tree";
-    renderTree(tree);
-    screenBody.appendChild(tree);
+    if (activeScreen === "history") {
+      screenTitle.textContent = "History";
+      screenBody.appendChild(createHistoryScreenContent());
+      return;
+    }
+
+    if (activeScreen === "configuration") {
+      screenTitle.textContent = "Configuration";
+      screenBody.appendChild(createConfigurationScreenContent());
+    }
   }
 
   function renderAll() {
     renderQuickNav();
-    renderTagsUi();
-    renderScreen();
     renderSideMenus();
+    renderScreen();
   }
 
   function closeScreen() {
-    activeScreen = null;
-    renderAll();
-    persistSession();
+    setActiveScreen(null);
   }
 
-  const unsubscribe = navigation.subscribe((event) => {
+  const unsubscribeNavigation = navigation.subscribe((event) => {
     if (event.type !== "open" && event.type !== "back-empty") {
       return;
     }
     renderAll();
     persistSession();
   });
+  const unsubscribeTagPool = tagPool && typeof tagPool.subscribe === "function"
+    ? tagPool.subscribe(() => renderAll())
+    : () => {};
+  const unsubscribePagingQueue = pagingQueue && typeof pagingQueue.subscribe === "function"
+    ? pagingQueue.subscribe(() => renderAll())
+    : () => {};
+  const unsubscribeConfiguration = configuration && typeof configuration.subscribe === "function"
+    ? configuration.subscribe(() => {
+      if (activeScreen === "configuration") {
+        renderScreen();
+      }
+    })
+    : () => {};
 
   host.querySelector('[data-action="open-nav"]').addEventListener("click", () => setNavOpen(true));
-  host.querySelector('[data-action="close-nav"]').addEventListener("click", () => setNavOpen(false));
   navPane.addEventListener("click", (event) => {
     if (event.target === navPane) {
       setNavOpen(false);
     }
   });
-  host.querySelector('[data-action="sitemap"]').addEventListener("click", () => {
-    activeScreen = "sitemap";
-    if (expandAllSitemapMenus()) {
-      persistSession();
-    }
+
+  tagsOpenButton.addEventListener("click", () => {
     setNavOpen(false);
-    renderAll();
-    persistSession();
+    setActiveScreen("tags");
   });
-  host.querySelector('[data-action="queue"]').addEventListener("click", () => {
-    activeScreen = "queue";
+  historyOpenButton.addEventListener("click", () => {
     setNavOpen(false);
-    renderAll();
-    persistSession();
+    setActiveScreen("history");
   });
-  tagsToggleButton.addEventListener("click", () => {
-    tagsEnabled = !tagsEnabled;
-    if (!tagsEnabled) {
-      tagChooserOpen = false;
-      tagSessionDeselectCount = 0;
-      draftSelectedTags = null;
-    }
-    renderAll();
-    persistSession();
+  configurationOpenButton.addEventListener("click", () => {
+    setNavOpen(false);
+    setActiveScreen("configuration");
   });
-  tagAnchor.addEventListener("click", () => {
-    if (!tagsEnabled) {
-      return;
-    }
-    if (!tagChooserOpen) {
-      tagChooserOpen = true;
-      tagSessionDeselectCount = 0;
-      draftSelectedTags = new Set(queueCore.getSelectedTags());
-      renderAll();
-      persistSession();
-      return;
-    }
-    tagChooserOpen = false;
-    const selectedTags = draftSelectedTags instanceof Set ? Array.from(draftSelectedTags) : queueCore.getSelectedTags();
-    queueCore.clearTags();
-    selectedTags.forEach((tag) => {
-      if (!queueCore.getSelectedTags().includes(tag)) {
-        queueCore.toggleTag(tag);
-      }
-    });
-    draftSelectedTags = null;
-    tagSessionDeselectCount = 0;
-    renderAll();
-    persistSession();
-  });
-  clearTagsButton.addEventListener("click", () => {
-    if (!(draftSelectedTags instanceof Set)) {
-      draftSelectedTags = new Set(queueCore.getSelectedTags());
-    }
-    draftSelectedTags.clear();
-    tagSessionDeselectCount = 0;
-    renderAll();
-  });
+
   host.querySelector('[data-action="close-screen"]').addEventListener("click", closeScreen);
-  clearQueueButton.addEventListener("click", () => {
-    queueCore.loadSnapshot({
-      selectedTags: [],
-      sitemapSelectedIds: [],
-      useDefaultQueue: false,
-      nextQueue: []
-    });
-    draftSelectedTags = null;
-    tagSessionDeselectCount = 0;
-    renderAll();
-    persistSession();
-  });
+
   host.querySelector('[data-action="home"]').addEventListener("click", () => {
     if (homeArticleId && articleMap.has(homeArticleId)) {
       openArticle(homeArticleId);
@@ -593,18 +605,27 @@ export function createViewport360(options) {
     }
     navigation.openHome();
   });
+
   prevButton.addEventListener("click", () => {
-    const around = getQueueAround(queueCore.getQueue(), navigation.readState().selectedArticleId);
+    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
+      ? pagingQueue.getQueue()
+      : [];
+    const around = getQueueAround(queue, navigation.readState().selectedArticleId);
     if (around.previousId) {
       openArticle(around.previousId);
     }
   });
+
   nextButton.addEventListener("click", () => {
-    const around = getQueueAround(queueCore.getQueue(), navigation.readState().selectedArticleId);
+    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
+      ? pagingQueue.getQueue()
+      : [];
+    const around = getQueueAround(queue, navigation.readState().selectedArticleId);
     if (around.nextId) {
       openArticle(around.nextId);
     }
   });
+
   sideToggleButton.addEventListener("click", () => {
     if (sidePaneMode === "closed") {
       setSidePaneMode("open");
@@ -627,27 +648,24 @@ export function createViewport360(options) {
     if (clickedInsidePane || clickedToggle) {
       return;
     }
-    if (!(event.target instanceof Node)) {
-      setSidePaneMode("closed");
-      return;
-    }
     setSidePaneMode("closed");
   };
   document.addEventListener("click", onDocumentClick);
 
   const onKeyDown = (event) => {
-    if (event.key === "Escape") {
-      if (navOpen) {
-        setNavOpen(false);
-        return;
-      }
-      if (activeScreen) {
-        closeScreen();
-        return;
-      }
-      if (sidePaneMode !== "closed") {
-        setSidePaneMode("closed");
-      }
+    if (event.key !== "Escape") {
+      return;
+    }
+    if (navOpen) {
+      setNavOpen(false);
+      return;
+    }
+    if (activeScreen) {
+      closeScreen();
+      return;
+    }
+    if (sidePaneMode !== "closed") {
+      setSidePaneMode("closed");
     }
   };
   window.addEventListener("keydown", onKeyDown);
@@ -668,10 +686,10 @@ export function createViewport360(options) {
     key: "360",
     articlePane: pane,
     teardown() {
-      if (sitemapClickTimer) {
-        window.clearTimeout(sitemapClickTimer);
-      }
-      unsubscribe();
+      unsubscribeNavigation();
+      unsubscribeTagPool();
+      unsubscribePagingQueue();
+      unsubscribeConfiguration();
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("click", onDocumentClick);
       host.innerHTML = "";
