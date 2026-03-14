@@ -7,20 +7,38 @@ import shutil
 from pathlib import Path
 
 
-PAIR_RE = re.compile(r"^- ([^ ]+) <-> .*\((https?://[^)]+)\)", re.MULTILINE)
+PAIR_RE = re.compile(r"^- ([^ ]+) <-> .*\((https?://[^)]+)\)")
 MAIN_RE = re.compile(r"<main\b[^>]*>.*?</main>", re.IGNORECASE | re.DOTALL)
 
 
-def extract_pairs(text: str) -> list[tuple[str, str]]:
+def extract_pairs_and_hidden_ids(text: str) -> tuple[list[tuple[str, str]], set[str]]:
     pairs: list[tuple[str, str]] = []
     seen: set[str] = set()
-    for match in PAIR_RE.finditer(text):
+    hidden_ids: set[str] = set()
+    in_hidden_section = False
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.lower().startswith("!not to publish:"):
+            in_hidden_section = True
+            continue
+        if in_hidden_section:
+            if line.startswith("- "):
+                candidate = line[2:].strip().split()[0]
+                if candidate:
+                    hidden_ids.add(candidate)
+                continue
+            in_hidden_section = False
+        match = PAIR_RE.match(line)
+        if not match:
+            continue
         article_id = match.group(1).strip()
         article_url = match.group(2).strip()
         if article_id and article_id not in seen:
             seen.add(article_id)
             pairs.append((article_id, article_url))
-    return pairs
+    return pairs, hidden_ids
 
 
 def collect_navigation_urls(nodes: list[dict]) -> set[str]:
@@ -41,7 +59,7 @@ def collect_navigation_urls(nodes: list[dict]) -> set[str]:
     return urls
 
 
-def build_website_tree(nodes: list[dict], id_by_url: dict[str, str]) -> list[dict]:
+def build_website_tree(nodes: list[dict], id_by_url: dict[str, str], hidden_ids: set[str]) -> list[dict]:
     def convert(node: dict) -> dict | None:
         title = node.get("title")
         url = node.get("url")
@@ -60,15 +78,21 @@ def build_website_tree(nodes: list[dict], id_by_url: dict[str, str]) -> list[dic
                 converted_child = convert(child)
                 if converted_child:
                     out_children.append(converted_child)
-            return {
+            item = {
                 "type": "menu",
                 "label": title,
                 "articleId": article_id,
                 "title": title,
                 "children": out_children
             }
+            if article_id in hidden_ids:
+                item["publish"] = False
+            return item
 
-        return {"type": "article", "articleId": article_id, "title": title}
+        item = {"type": "article", "articleId": article_id, "title": title}
+        if article_id in hidden_ids:
+            item["publish"] = False
+        return item
 
     converted: list[dict] = []
     for node in nodes:
@@ -109,11 +133,16 @@ def main() -> int:
     if not navigation_path.is_file():
         return fail(f"ERROR: missing navigation file: {navigation_path}")
 
-    pairs = extract_pairs(matching_path.read_text(encoding="utf-8"))
+    pairs, hidden_ids = extract_pairs_and_hidden_ids(matching_path.read_text(encoding="utf-8"))
     if not pairs:
         return fail("ERROR: no matching pairs found in matching2.txt")
     article_ids = [article_id for article_id, _ in pairs]
     id_by_url = {url: article_id for article_id, url in pairs}
+
+    if hidden_ids:
+        unknown_hidden = sorted(article_id for article_id in hidden_ids if article_id not in article_ids)
+        if unknown_hidden:
+            return fail("ERROR: !Not to publish contains unknown IDs: " + ", ".join(unknown_hidden))
 
     nav_data = json.loads(navigation_path.read_text(encoding="utf-8"))
     nav_tree = nav_data.get("tree")
@@ -152,6 +181,7 @@ def main() -> int:
     lines.append(f"Folder Missing: {len(folder_missing)}")
     lines.append(f"Navigation OK: {len(nav_found)}")
     lines.append(f"Navigation NO: {len(nav_missing)}")
+    lines.append(f"Not to publish: {len(hidden_ids)}")
     lines.append("")
     lines.append("Navigation Status:")
     if status_lines:
@@ -181,9 +211,10 @@ def main() -> int:
     website = {
         "meta": {
             "title": "Generated from navigation-info-localhost-8081.json",
-            "landingArticleId": article_ids[0] if article_ids else None,
+            "landingArticleId": next((article_id for article_id in article_ids if article_id not in hidden_ids), article_ids[0] if article_ids else None),
+            "notPublishArticleIds": sorted(hidden_ids),
         },
-        "topLevel": build_website_tree(nav_tree if isinstance(nav_tree, list) else [], id_by_url),
+        "topLevel": build_website_tree(nav_tree if isinstance(nav_tree, list) else [], id_by_url, hidden_ids),
     }
     website_output_path.write_text(json.dumps(website, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     lines.append(f"website.json: generated at {website_output_path}")

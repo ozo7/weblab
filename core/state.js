@@ -1,6 +1,6 @@
 export function createRuntimeState() {
   return {
-    sourceFolder: "../zz-export",
+    sourceFolder: "/zz-export",
     website: null,
     tags: null,
     runtime: null,

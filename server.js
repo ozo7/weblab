@@ -59,8 +59,8 @@ function readSettings() {
 }
 
 const SETTINGS = readSettings();
-const HOST = String(process.env.WEBLAB_HOST || SETTINGS.server.host || DEFAULTS.server.host);
-const PORT = Number(process.env.WEBLAB_PORT || SETTINGS.server.port || DEFAULTS.server.port);
+const HOST = String(process.env.WEBVIEWER_HOST || process.env.WEBLAB_HOST || SETTINGS.server.host || DEFAULTS.server.host);
+const PORT = Number(process.env.WEBVIEWER_PORT || process.env.WEBLAB_PORT || SETTINGS.server.port || DEFAULTS.server.port);
 const MAX_BODY_BYTES = Number(SETTINGS.server.maxBodyBytes || DEFAULTS.server.maxBodyBytes);
 const MEDIA_ALIAS_DIR = path.resolve(ROOT_DIR, SETTINGS.paths.mediaAlias || DEFAULTS.paths.mediaAlias);
 const APP_SETTINGS_PATH = path.resolve(ROOT_DIR, SETTINGS.paths.settings || DEFAULTS.paths.settings);
@@ -201,7 +201,11 @@ function parseRangeHeader(rangeHeader, size) {
 }
 
 function resolveStaticPath(pathname) {
-  const requestPath = pathname === "/" ? "/lab/lab.html" : pathname;
+  let requestPath = pathname;
+  if (pathname === "/") {
+    const labEntry = path.join(ROOT_DIR, "lab", "lab.html");
+    requestPath = fs.existsSync(labEntry) ? "/lab/lab.html" : "/app/app.html";
+  }
   let decoded;
   try {
     decoded = decodeURIComponent(requestPath);
@@ -334,5 +338,5 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(PORT, HOST, () => {
-  process.stdout.write("weblab-server listening on http://" + HOST + ":" + PORT + "\n");
+  process.stdout.write("webviewer-v-1-1 server listening on http://" + HOST + ":" + PORT + "\n");
 });

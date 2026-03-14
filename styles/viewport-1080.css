@@ -43,6 +43,24 @@
   min-height: 0;
 }
 
+.wv1080-pane-underflow .wv1080-content-host {
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.wv1080-pane-underflow .wv1080-content-host #pane2main {
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.wv1080-rail-underflow .wv1080-rail {
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .wv1080-rail-head {
   padding: 10px;
   display: flex;
@@ -155,7 +173,17 @@
 .wv1080-config-preview-pane {
   width: 100%;
   height: 100%;
-  min-height: 220px;
+  min-height: 100%;
+}
+
+.wv1080-content-host #pane2main.wv1080-config-preview-pane {
+  border: 0;
+  border-radius: 0;
+}
+
+.wv1080-is-configuration .wv1080-content-host #pane2main {
+  border: 0;
+  border-radius: 0;
 }
 
 .wv1080-config-preview-stage {

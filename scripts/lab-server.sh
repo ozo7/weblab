@@ -84,7 +84,7 @@ start_server() {
   : > "$LOG_FILE"
   (
     cd "$ROOT_DIR"
-    setsid env WEBLAB_HOST="$HOST" WEBLAB_PORT="$PORT" node ./server.js >> "$LOG_FILE" 2>&1 < /dev/null &
+    setsid env WEBVIEWER_HOST="$HOST" WEBVIEWER_PORT="$PORT" node ./server.js >> "$LOG_FILE" 2>&1 < /dev/null &
     echo $! > "$PID_FILE"
   )
 

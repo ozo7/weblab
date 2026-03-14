@@ -507,8 +507,39 @@
 
 .wv360-config-controls {
   display: grid;
-  justify-items: end;
+  justify-items: center;
   gap: 8px;
+}
+
+.wv360-config-actions {
+  width: min(100%, 320px);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.wv360-config-toggle {
+  width: 100%;
+  min-height: 34px;
+  text-align: left;
+  padding: 6px 10px;
+  font: 700 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.wv360-config-resolution-list {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 320px);
+  justify-self: center;
+}
+
+.wv360-config-resolution-btn {
+  width: 100%;
+  min-height: 34px;
+  text-align: left;
+  padding: 6px 10px;
+  font: 700 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
 .wv360-config-pastel-cluster {
@@ -519,6 +550,7 @@
   border: 1px solid rgba(23, 48, 31, 0.2);
   border-radius: 10px;
   background: rgba(248, 252, 248, 0.84);
+  justify-self: center;
 }
 
 .wv360-config-pastel-row {
@@ -536,6 +568,7 @@
   display: grid;
   gap: 6px;
   width: min(100%, 320px);
+  justify-self: center;
 }
 
 .wv360-config-scheme-btn {

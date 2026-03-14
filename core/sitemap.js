@@ -56,6 +56,7 @@ export function createSiteMap(options) {
         label: typeof entry.label === "string" && entry.label.trim() ? entry.label.trim() : "",
         title: typeof entry.title === "string" && entry.title.trim() ? entry.title.trim() : "",
         articleId: typeof entry.articleId === "string" ? entry.articleId : null,
+        publish: entry && entry.publish !== false,
         hasChildren: Array.isArray(entry.children) && entry.children.length > 0
       });
       if (parentNodeId) {
@@ -114,6 +115,7 @@ export function createSiteMap(options) {
           label: model.label,
           title: model.title,
           articleId,
+          publish: model.publish !== false,
           isClickable: canOpen,
           hasChildren: model.hasChildren,
           isExpanded,

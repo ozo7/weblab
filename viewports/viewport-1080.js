@@ -59,11 +59,29 @@ export function createViewport1080(options) {
   const railMenuButton = host.querySelector(".wv1080-rail-menu-btn");
   const railMenuList = host.querySelector(".wv1080-rail-menu-list");
   const railMenuItems = Array.from(host.querySelectorAll(".wv1080-rail-menu-item"));
+  let underflowRafId = 0;
   let fallbackRailMode = "menus";
   const railModeController = createNavAreaController({
     allowedModes: ["menus", "tags", "history", "configuration"],
     fallbackMode: "menus"
   });
+
+  function updateUnderflowVisualState() {
+    const paneUnderflow = pane.scrollHeight <= pane.clientHeight + 1;
+    const railUnderflow = railScroll.scrollHeight <= railScroll.clientHeight + 1;
+    host.classList.toggle("wv1080-pane-underflow", paneUnderflow);
+    host.classList.toggle("wv1080-rail-underflow", railUnderflow);
+  }
+
+  function scheduleUnderflowVisualState() {
+    if (underflowRafId) {
+      cancelAnimationFrame(underflowRafId);
+    }
+    underflowRafId = requestAnimationFrame(() => {
+      underflowRafId = 0;
+      updateUnderflowVisualState();
+    });
+  }
 
   function setRailMenuOpen(open) {
     const expanded = Boolean(open);
@@ -139,6 +157,7 @@ export function createViewport1080(options) {
     headBackButton.disabled = historyList.length === 0;
 
     const railMode = resolveRailMode(runtime.navArea, fallbackRailMode);
+    host.classList.toggle("wv1080-is-configuration", railMode === "configuration");
     setMenuItemsActive(railMenuItems, railMode);
     railScroll.innerHTML = "";
     if (railMode === "tags") {
@@ -194,6 +213,7 @@ export function createViewport1080(options) {
         createButton,
         showPager: true
       }));
+      scheduleUnderflowVisualState();
       return;
     }
     if (railMode === "history") {
@@ -211,6 +231,7 @@ export function createViewport1080(options) {
           navigation.openArticleById(articleId);
         }
       }));
+      scheduleUnderflowVisualState();
       return;
     }
     if (railMode === "configuration") {
@@ -252,6 +273,7 @@ export function createViewport1080(options) {
           }
         }
       }));
+      scheduleUnderflowVisualState();
       return;
     }
 
@@ -262,6 +284,7 @@ export function createViewport1080(options) {
       createMenuRow: rowBuilders.createMenuRow,
       createArticleRow: rowBuilders.createArticleRow
     });
+    scheduleUnderflowVisualState();
   }
 
   const unbindSubscriptions = bindViewportSubscriptions({
@@ -291,6 +314,21 @@ export function createViewport1080(options) {
       render();
     }
   });
+
+  const onWindowResize = () => {
+    scheduleUnderflowVisualState();
+  };
+  window.addEventListener("resize", onWindowResize);
+
+  const underflowObserver = typeof ResizeObserver === "function"
+    ? new ResizeObserver(() => {
+      scheduleUnderflowVisualState();
+    })
+    : null;
+  if (underflowObserver) {
+    underflowObserver.observe(pane);
+    underflowObserver.observe(railScroll);
+  }
 
   railMenuButton.addEventListener("click", () => {
     setRailMenuOpen(railMenuList.hidden);
@@ -337,6 +375,7 @@ export function createViewport1080(options) {
   });
 
   setRailMode(navigation.readState().navArea || "menus");
+  scheduleUnderflowVisualState();
 
   return {
     key: "1080",
@@ -344,6 +383,14 @@ export function createViewport1080(options) {
     teardown() {
       unbindSubscriptions();
       unbindMenuDismiss();
+      window.removeEventListener("resize", onWindowResize);
+      if (underflowObserver) {
+        underflowObserver.disconnect();
+      }
+      if (underflowRafId) {
+        cancelAnimationFrame(underflowRafId);
+        underflowRafId = 0;
+      }
       host.innerHTML = "";
     }
   };

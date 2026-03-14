@@ -33,7 +33,7 @@ function waitForStylesheetNode(node, timeoutMs) {
 
 function getColorSchemeHref(selectedSchemeKey) {
   if (selectedSchemeKey === "minty-premature") {
-    return "../styles/colorschemes/minty-premature.css";
+    return "/styles/colorschemes/minty-premature.css";
   }
   return "";
 }

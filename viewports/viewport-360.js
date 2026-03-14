@@ -47,6 +47,7 @@ export function createViewport360(options) {
   let configPreviewKey = configuration && typeof configuration.readState === "function"
     ? configuration.readState().selectedSchemeKey
     : "minty-premature";
+  let configurationPanelMode = "overview";
   const screenModeController = createNavAreaController({
     allowedModes: ["tags", "history", "configuration", "paging"],
     fallbackMode: null,
@@ -127,7 +128,20 @@ export function createViewport360(options) {
   }
 
   function setActiveScreen(nextScreen) {
+    const previousScreen = activeScreen;
     activeScreen = screenModeController.normalize(nextScreen);
+    if (activeScreen === "configuration" && previousScreen !== "configuration") {
+      configurationPanelMode = "overview";
+      if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+        configuration.setColorSchemesVisible(false);
+      }
+    }
+    if (activeScreen !== "configuration") {
+      configurationPanelMode = "overview";
+      if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+        configuration.setColorSchemesVisible(false);
+      }
+    }
     const navArea = activeScreen === "paging" ? "tags" : (activeScreen || "menus");
     if (typeof navigation.setNavArea === "function") {
       navigation.setNavArea(navArea);
@@ -439,6 +453,69 @@ export function createViewport360(options) {
 
     const previewScheme = getConfigurationPreviewByKey(configPreviewKey);
     const preview = previewScheme && previewScheme.preview ? previewScheme.preview : null;
+    const state = configuration && typeof configuration.readState === "function" ? configuration.readState() : null;
+    const actionsRow = document.createElement("div");
+    actionsRow.className = "wv360-config-actions";
+    const mode = configurationPanelMode === "color-schemes" || configurationPanelMode === "screen-resolutions"
+      ? configurationPanelMode
+      : "overview";
+
+    if (mode === "overview") {
+      const colorSchemesButton = createButton("Color Schemes", "wv360-config-toggle cs-action-btn", () => {
+        configurationPanelMode = "color-schemes";
+        if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+          configuration.setColorSchemesVisible(true);
+        }
+        renderScreen();
+      });
+      actionsRow.appendChild(colorSchemesButton);
+
+      const screenResolutionsButton = createButton("Screen Resolutions", "wv360-config-toggle cs-action-btn", () => {
+        configurationPanelMode = "screen-resolutions";
+        if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+          configuration.setColorSchemesVisible(false);
+        }
+        renderScreen();
+      });
+      actionsRow.appendChild(screenResolutionsButton);
+      wrap.appendChild(actionsRow);
+      return wrap;
+    }
+
+    const backButton = createButton("Back", "wv360-config-toggle cs-action-btn", () => {
+      configurationPanelMode = "overview";
+      if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+        configuration.setColorSchemesVisible(false);
+      }
+      renderScreen();
+    });
+    actionsRow.appendChild(backButton);
+    wrap.appendChild(actionsRow);
+
+    if (mode === "screen-resolutions") {
+      const resolutions = document.createElement("div");
+      resolutions.className = "wv360-config-resolution-list";
+      [
+        "Responsive 360-720-1080+",
+        "Static 360",
+        "Static 720",
+        "Static 1080"
+      ].forEach((label) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "wv360-config-resolution-btn cs-scheme-btn";
+        button.textContent = label;
+        button.disabled = true;
+        resolutions.appendChild(button);
+      });
+      wrap.appendChild(resolutions);
+      return wrap;
+    }
+
+    if (!state || !state.colorSchemesVisible) {
+      return wrap;
+    }
+
     if (preview) {
       const mini = document.createElement("div");
       mini.className = "wv360-config-mini cs-preview-card";
@@ -469,7 +546,6 @@ export function createViewport360(options) {
       wrap.appendChild(mini);
     }
 
-    const state = configuration && typeof configuration.readState === "function" ? configuration.readState() : null;
     const controlsWrap = document.createElement("div");
     controlsWrap.className = "wv360-config-controls";
     const schemes = state && Array.isArray(state.schemes) ? state.schemes : [];

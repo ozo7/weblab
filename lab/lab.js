@@ -84,7 +84,7 @@ function ensureTracking(key) {
 }
 
 async function loadProfiles() {
-  const response = await fetch("../config/viewport-profiles.json", { cache: "no-store" });
+  const response = await fetch("/config/viewport-profiles.json", { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Missing config/viewport-profiles.json");
   }
@@ -101,7 +101,7 @@ function setViewportSize(profile) {
 }
 
 async function ensureViewportStyle(styleFile) {
-  const href = "../styles/" + styleFile;
+  const href = "/styles/" + styleFile;
   await ensureStyleLoaded(runtime, href);
 }
 

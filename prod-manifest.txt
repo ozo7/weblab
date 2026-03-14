@@ -1,0 +1,9 @@
+# Production allowlist. Paths are relative to repo root.
+app
+core
+viewports
+styles
+config
+server.js
+start-weblab.sh
+scripts/deploy-on-vps.sh

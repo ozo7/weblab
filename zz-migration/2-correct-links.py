@@ -11,7 +11,7 @@ from urllib.parse import unquote, urlparse
 ATTR_RE = re.compile(r"""(?P<attr>\b(?:src|href|poster)\b)\s*=\s*(?P<q>["'])(?P<val>.*?)(?P=q)""", re.IGNORECASE)
 DATA_TRACKS_RE = re.compile(r"""(?P<attr>\bdata-tracks\b)\s*=\s*(?P<q>["'])(?P<val>.*?)(?P=q)""", re.IGNORECASE)
 LOCAL_SKIP_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//|#)", re.IGNORECASE)
-PAIR_RE = re.compile(r"^- ([^ ]+) <-> .*\((https?://[^)]+)\)", re.MULTILINE)
+PAIR_RE = re.compile(r"^- ([^ ]+) <-> .*\((https?://[^)]+)\)")
 ANCHOR_TAG_RE = re.compile(r"<a\b[^>]*>", re.IGNORECASE)
 HREF_IN_TAG_RE = re.compile(r"""\bhref\s*=\s*(["'])(?P<val>.*?)\1""", re.IGNORECASE)
 INTERNAL_NAV_REF_RE = re.compile(r"""\binternal-nav-ref\s*=\s*(["'])(?P<val>.*?)\1""", re.IGNORECASE)
@@ -195,7 +195,21 @@ def normalize_table_links(html: str) -> tuple[str, int]:
 def extract_pairs(text: str) -> list[tuple[str, str]]:
     pairs: list[tuple[str, str]] = []
     seen: set[str] = set()
-    for match in PAIR_RE.finditer(text):
+    in_hidden_section = False
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.lower().startswith("!not to publish:"):
+            in_hidden_section = True
+            continue
+        if in_hidden_section:
+            if line.startswith("- "):
+                continue
+            in_hidden_section = False
+        match = PAIR_RE.match(line)
+        if not match:
+            continue
         article_id = match.group(1).strip()
         article_url = match.group(2).strip()
         if article_id and article_url and article_id not in seen:

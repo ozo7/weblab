@@ -1,7 +1,11 @@
 {
   "meta": {
     "title": "Generated from navigation-info-localhost-8081.json",
-    "landingArticleId": "hh-home"
+    "landingArticleId": "hh-home",
+    "notPublishArticleIds": [
+      "hh-steuerungen",
+      "hh-steuerungen-2"
+    ]
   },
   "topLevel": [
     {
@@ -162,12 +166,14 @@
     {
       "type": "article",
       "articleId": "hh-steuerungen",
-      "title": "Steuerungen"
+      "title": "Steuerungen",
+      "publish": false
     },
     {
       "type": "article",
       "articleId": "hh-steuerungen-2",
-      "title": "Steuerungen 2"
+      "title": "Steuerungen 2",
+      "publish": false
     }
   ]
 }

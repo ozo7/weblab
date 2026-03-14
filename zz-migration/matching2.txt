@@ -44,5 +44,8 @@ Present in first and missing in second
 Present in second and missing in first
 404 - Erfahrungsberichte (http://localhost:8081/seminare/russland-schungit/erfahrungsberichte.html) -> expected hh-seminare-russland-schungit-erfahrungsberichte
 
+!Not to publish:
+- hh-steuerungen
+- hh-steuerungen-2
 
 Totals: 30 matched, 2 only in first, 1 only in second.
