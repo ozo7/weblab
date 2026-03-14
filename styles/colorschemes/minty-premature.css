@@ -1,16 +1,40 @@
 :root {
   --mint-surface: #f8fcf8;
   --mint-layer: #ffffff;
+  --mint-body-bg: #f2f7f3;
+  --mint-host-bg: #f6faf7;
   --mint-text: #17301f;
   --mint-text-soft: #294537;
   --mint-border: #b8cabc;
   --mint-border-soft: #d8e2db;
   --mint-interactive: #e5f1e8;
   --mint-interactive-strong: #dce9df;
+  --mint-rail-grad-start: #f8fbf7;
+  --mint-rail-grad-end: #edf5ef;
+  --mint-fab-bg: rgba(255, 255, 255, 0.96);
+  --mint-fab-shadow: 0 8px 16px rgba(24, 50, 34, 0.14);
+  --mint-chevron: #2a5c42;
+  --mint-overlay-bg: rgba(255, 255, 255, 0.98);
+  --mint-panel-head-bg: #f3f8f4;
+  --mint-soft-divider: rgba(23, 48, 31, 0.18);
+  --mint-glass-bg: rgba(248, 252, 248, 0.96);
+  --mint-glass-border: rgba(23, 48, 31, 0.22);
+  --mint-glass-shadow: 0 6px 14px rgba(16, 27, 19, 0.16);
+  --mint-scroll-track: #edf5ef;
+  --mint-scroll-thumb: #b8cabc;
+  --mint-scroll-thumb-hover: #7da88a;
+  --mint-link: #2362a4;
+  --mint-link-hover: #194977;
+  --mint-link-visited: #5c3f7f;
   --mint-depth-1: rgba(23, 48, 31, 0.15);
   --mint-depth-2: rgba(23, 48, 31, 0.30);
   --mint-depth-3: rgba(23, 48, 31, 0.45);
   --mint-depth-4: rgba(23, 48, 31, 0.60);
+}
+
+body {
+  background: var(--mint-body-bg);
+  color: var(--mint-text);
 }
 
 .cs-shell {
@@ -21,11 +45,11 @@
 .cs-content-host {
   border: 1px solid var(--mint-border-soft);
   border-radius: 10px;
-  background: var(--mint-layer);
+  background: var(--mint-surface);
 }
 
 .cs-content-host #pane2main {
-  background: var(--mint-layer);
+  background: var(--mint-surface);
   border-color: var(--mint-border-soft);
   border-radius: 12px;
 }
@@ -33,7 +57,7 @@
 .cs-rail {
   border: 1px solid var(--mint-border-soft);
   border-radius: 10px;
-  background: linear-gradient(180deg, #f8fbf7, #edf5ef);
+  background: linear-gradient(180deg, var(--mint-rail-grad-start), var(--mint-rail-grad-end));
 }
 
 .cs-rail-head {
@@ -150,6 +174,11 @@
   border-radius: 7px;
 }
 
+.cs-preview-scroll-box {
+  background: var(--mint-surface);
+  color: var(--mint-text);
+}
+
 .cs-queue-stripe {
   background: #111111;
 }
@@ -185,11 +214,63 @@
 .cs-floating-btn {
   border: 1px solid var(--mint-border);
   color: var(--mint-text);
-  background: var(--mint-layer);
+  background: var(--mint-fab-bg);
+  box-shadow: var(--mint-fab-shadow);
 }
 
 .cs-panel-head {
   border-bottom: 1px solid var(--mint-border-soft);
-  background: #f3f8f4;
+  background: var(--mint-panel-head-bg);
   border-color: var(--mint-border-soft);
+}
+
+.cs-content-host #pane2main h1,
+.cs-content-host #pane2main h2,
+.cs-content-host #pane2main h3,
+.cs-content-host #pane2main h4,
+.cs-content-host #pane2main h5,
+.cs-content-host #pane2main h6 {
+  color: var(--mint-text);
+}
+
+.cs-content-host a,
+.cs-preview-card a {
+  color: var(--mint-link);
+}
+
+.cs-content-host a:hover,
+.cs-preview-card a:hover {
+  color: var(--mint-link-hover);
+}
+
+.cs-content-host a:visited,
+.cs-preview-card a:visited {
+  color: var(--mint-link-visited);
+}
+
+.cs-preview-card a.is-visited {
+  color: var(--mint-link-visited);
+}
+
+* {
+  scrollbar-color: var(--mint-scroll-thumb) var(--mint-scroll-track);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--mint-scroll-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--mint-scroll-thumb);
+  border-radius: 999px;
+  border: 2px solid var(--mint-scroll-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--mint-scroll-thumb-hover);
 }

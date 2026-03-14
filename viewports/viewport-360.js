@@ -582,6 +582,9 @@ export function createViewport360(options) {
       pastelButton.style.borderColor = asPreviewColor(pastelPreview.border, "#B8CABC");
       pastelButton.addEventListener("click", () => {
         configPreviewKey = pastelScheme.key;
+        if (configuration && typeof configuration.setSelectedScheme === "function") {
+          configuration.setSelectedScheme(pastelScheme.key);
+        }
         renderScreen();
       });
       pastelCluster.appendChild(pastelButton);
@@ -601,6 +604,9 @@ export function createViewport360(options) {
           return;
         }
         configPreviewKey = scheme.key;
+        if (configuration && typeof configuration.setSelectedScheme === "function") {
+          configuration.setSelectedScheme(scheme.key);
+        }
         renderScreen();
       },
       isEnabled() {
@@ -683,6 +689,17 @@ export function createViewport360(options) {
     },
     onConfiguration(event) {
       if (activeScreen === "configuration") {
+        if (
+          configuration &&
+          typeof configuration.readState === "function" &&
+          event &&
+          (event.type === "set-selected-scheme" || event.type === "load-snapshot")
+        ) {
+          const state = configuration.readState();
+          if (state && typeof state.selectedSchemeKey === "string") {
+            configPreviewKey = state.selectedSchemeKey;
+          }
+        }
         if (event && event.type === "set-pastel-base-color") {
           refreshConfigurationMiniIfVisible();
           return;

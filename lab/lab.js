@@ -115,16 +115,20 @@ async function ensureSharedRuntime() {
   const configuration = sharedRuntime.getConfiguration();
   if (configuration && typeof configuration.readState === "function") {
     const state = configuration.readState();
-    await ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey);
+    await ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey, {
+      pastelBaseColor: state.pastelBaseColor
+    });
   }
   if (!runtime.unbindConfigurationStyle && configuration && typeof configuration.subscribe === "function") {
     runtime.unbindConfigurationStyle = configuration.subscribe((event) => {
       if (!event) {
         return;
       }
-      if (event.type === "set-selected-scheme" || event.type === "load-snapshot") {
+      if (event.type === "set-selected-scheme" || event.type === "set-pastel-base-color" || event.type === "load-snapshot") {
         const state = configuration.readState();
-        ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey).catch(() => {});
+        ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey, {
+          pastelBaseColor: state.pastelBaseColor
+        }).catch(() => {});
       }
       if (event.type === "set-viewport-mode" || event.type === "load-snapshot") {
         queueApplyViewportMode();

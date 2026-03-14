@@ -12,14 +12,15 @@
     }
 
     body {
-      background: #e7efe8;
+      background: var(--mint-body-bg, var(--mint-surface, #e7efe8));
+      color: var(--mint-text, #17301f);
       font: 400 15px/1.4 "Trebuchet MS", "Segoe UI", sans-serif;
     }
 
     #appViewportHost {
-      border: 1px solid #bfcfc3;
+      border: 1px solid var(--mint-border-soft, #bfcfc3);
       border-radius: 12px;
-      background: #f9fcf9;
+      background: var(--mint-host-bg, var(--mint-layer, #f9fcf9));
       overflow: hidden;
     }
   </style>

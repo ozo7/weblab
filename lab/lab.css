@@ -38,7 +38,7 @@ body {
 .lab-frame {
   border: 1px solid var(--lab-line);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--mint-surface, #f8fcf8);
   overflow: auto;
   min-height: 0;
   height: 100%;
@@ -47,7 +47,7 @@ body {
 .lab-objects-workspace {
   border: 1px solid var(--lab-line);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--mint-layer, #ffffff);
   min-height: 80vh;
   overflow: auto;
   padding: 12px;

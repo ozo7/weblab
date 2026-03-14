@@ -295,6 +295,102 @@
   font: 600 0.74rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
+.wv1080-config-preview-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.wv1080-config-preview-model {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wv1080-config-preview-frame {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.wv1080-config-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 12px;
+  min-height: 390px;
+}
+
+.wv1080-config-preview-content {
+  border-radius: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.wv1080-config-preview-article {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.wv1080-config-preview-h1 {
+  margin: 0;
+  font: 700 1.14rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv1080-config-preview-h2 {
+  margin: 0;
+  font: 700 0.96rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv1080-config-preview-text {
+  margin: 0;
+  font: 400 0.84rem/1.38 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv1080-config-preview-rail {
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.wv1080-config-preview-caption {
+  font: 600 0.8rem/1.25 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv1080-config-preview-scroll {
+  border-radius: 10px;
+  border: 1px solid var(--mint-border-soft, #d8e2db);
+  background: var(--mint-layer, #fff);
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.wv1080-config-preview-scroll-head {
+  font: 700 0.8rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv1080-config-preview-scroll-box {
+  height: 180px;
+  min-height: 180px;
+  overflow-y: scroll !important;
+  overflow-x: hidden;
+  border: 1px dashed var(--mint-border, #b8cabc);
+  background: var(--mint-surface, #f8fcf8);
+  color: var(--mint-text, #17301f);
+  border-radius: 8px;
+  padding: 8px;
+  font: 400 0.78rem/1.35 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv1080-config-preview-scroll-box p {
+  margin: 0 0 8px;
+}
+
 .wv1080-history {
   margin: 10px 0;
   display: grid;

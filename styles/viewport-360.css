@@ -58,10 +58,10 @@
   height: 38px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--mint-fab-bg, rgba(255, 255, 255, 0.96));
   color: transparent;
   cursor: pointer;
-  box-shadow: 0 8px 16px rgba(24, 50, 34, 0.14);
+  box-shadow: var(--mint-fab-shadow, 0 8px 16px rgba(24, 50, 34, 0.14));
 }
 
 .wv360-side-toggle::before {
@@ -74,12 +74,12 @@
   transform: translate(-50%, -50%);
   border-top: 7px solid transparent;
   border-bottom: 7px solid transparent;
-  border-left: 10px solid #2a5c42;
+  border-left: 10px solid var(--mint-chevron, #2a5c42);
 }
 
 .wv360-shell[data-side-pane="closed"] .wv360-side-toggle::before {
   border-left: 0;
-  border-right: 10px solid #2a5c42;
+  border-right: 10px solid var(--mint-chevron, #2a5c42);
 }
 
 .wv360-side-pane {
@@ -254,7 +254,7 @@
   position: absolute;
   inset: 0;
   z-index: 6;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--mint-overlay-bg, rgba(255, 255, 255, 0.98));
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -363,7 +363,7 @@
 
 .wv360-tags-divider {
   height: 1px;
-  background: rgba(23, 48, 31, 0.18);
+  background: var(--mint-soft-divider, rgba(23, 48, 31, 0.18));
   margin-top: 4px;
 }
 
@@ -400,10 +400,10 @@
   margin-right: auto;
   margin-top: auto;
   padding: 6px 8px;
-  background: rgba(248, 252, 248, 0.96);
-  border: 1px solid rgba(23, 48, 31, 0.22);
+  background: var(--mint-glass-bg, rgba(248, 252, 248, 0.96));
+  border: 1px solid var(--mint-glass-border, rgba(23, 48, 31, 0.22));
   border-radius: 999px;
-  box-shadow: 0 6px 14px rgba(16, 27, 19, 0.16);
+  box-shadow: var(--mint-glass-shadow, 0 6px 14px rgba(16, 27, 19, 0.16));
 }
 
 .wv360-paging-btn {
@@ -547,9 +547,9 @@
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid rgba(23, 48, 31, 0.2);
+  border: 1px solid var(--mint-glass-border, rgba(23, 48, 31, 0.2));
   border-radius: 10px;
-  background: rgba(248, 252, 248, 0.84);
+  background: var(--mint-glass-bg, rgba(248, 252, 248, 0.84));
   justify-self: center;
 }
 

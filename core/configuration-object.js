@@ -5,7 +5,7 @@ import {
   resolveColorSchemes
 } from "./color-schemes.js";
 
-const ACTIVE_SCHEME_KEYS = new Set(["minty-premature"]);
+const ACTIVE_SCHEME_KEYS = new Set(BASE_COLOR_SCHEMES.map((scheme) => scheme.key));
 const FALLBACK_SCHEME_KEY = "minty-premature";
 const VIEWPORT_MODES = new Set(["auto", "static-360", "static-720", "static-1080"]);
 

@@ -47,7 +47,9 @@ async function applySelectedColorSchemeStyle() {
     return;
   }
   const state = configuration.readState();
-  await ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey);
+  await ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey, {
+    pastelBaseColor: state.pastelBaseColor
+  });
 }
 
 function wireColorSchemeStyleSelection() {
@@ -62,7 +64,7 @@ function wireColorSchemeStyleSelection() {
     if (!event) {
       return;
     }
-    if (event.type === "set-selected-scheme" || event.type === "load-snapshot") {
+    if (event.type === "set-selected-scheme" || event.type === "set-pastel-base-color" || event.type === "load-snapshot") {
       applySelectedColorSchemeStyle().catch(() => {});
     }
     if (event.type === "set-viewport-mode" || event.type === "load-snapshot") {

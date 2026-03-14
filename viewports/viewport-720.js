@@ -271,7 +271,7 @@ export function createViewport720(options) {
           resolutionButton: "wv720-config-resolution-btn cs-scheme-btn"
         },
         isEnabled(scheme) {
-          return scheme && scheme.key === "minty-premature";
+          return Boolean(scheme);
         },
         onOpenColorSchemes() {
           configurationPanelMode = "color-schemes";
@@ -295,7 +295,7 @@ export function createViewport720(options) {
           render();
         },
         onSelectScheme(scheme) {
-          if (!scheme || scheme.key !== "minty-premature") {
+          if (!scheme) {
             return;
           }
           if (configuration && typeof configuration.setSelectedScheme === "function") {

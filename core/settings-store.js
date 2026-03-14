@@ -14,43 +14,123 @@ async function fetchJson(url, options) {
   return response.json();
 }
 
+const LOCAL_STORAGE_KEY = "webviewer:user-settings:v1";
+
+function createEmptySettings() {
+  return {
+    app: {
+      viewportSessions: {},
+      objects: {}
+    }
+  };
+}
+
+function ensureShape(target) {
+  if (!isObject(target.app)) {
+    target.app = {};
+  }
+  if (!isObject(target.app.viewportSessions)) {
+    target.app.viewportSessions = {};
+  }
+  if (!isObject(target.app.objects)) {
+    target.app.objects = {};
+  }
+  return target;
+}
+
+function readLocalStorageSettings() {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return createEmptySettings();
+  }
+  try {
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) {
+      return createEmptySettings();
+    }
+    const parsed = JSON.parse(raw);
+    return ensureShape(isObject(parsed) ? parsed : createEmptySettings());
+  } catch (_) {
+    return createEmptySettings();
+  }
+}
+
+function writeLocalStorageSettings(nextSettings) {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return false;
+  }
+  try {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(nextSettings));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 export function createSettingsStore() {
-  let settings = null;
+  let settings = createEmptySettings();
+  let localSettings = createEmptySettings();
+  let remoteSettings = createEmptySettings();
   let persistTimer = null;
   let pendingPersist = Promise.resolve();
+  let dirtyLocal = false;
+  let dirtyRemote = false;
 
-  function ensureShape() {
-    if (!isObject(settings)) {
-      settings = {};
+  function mergeSettings() {
+    const next = createEmptySettings();
+    ensureShape(localSettings);
+    ensureShape(remoteSettings);
+
+    next.app.viewportSessions = cloneJson(localSettings.app.viewportSessions);
+    next.app.objects = cloneJson(localSettings.app.objects);
+    delete next.app.objects.labUi;
+
+    if (isObject(remoteSettings.app.objects.labUi)) {
+      next.app.objects.labUi = cloneJson(remoteSettings.app.objects.labUi);
     }
-    if (!isObject(settings.app)) {
-      settings.app = {};
-    }
-    if (!isObject(settings.app.viewportSessions)) {
-      settings.app.viewportSessions = {};
-    }
-    if (!isObject(settings.app.objects)) {
-      settings.app.objects = {};
+    settings = ensureShape(next);
+  }
+
+  function migrateLegacyRemoteSettingsToLocal() {
+    let changed = false;
+    Object.keys(remoteSettings.app.viewportSessions).forEach((key) => {
+      if (!isObject(localSettings.app.viewportSessions[key])) {
+        localSettings.app.viewportSessions[key] = cloneJson(remoteSettings.app.viewportSessions[key]);
+        changed = true;
+      }
+    });
+    Object.keys(remoteSettings.app.objects).forEach((key) => {
+      if (key === "labUi") {
+        return;
+      }
+      if (!isObject(localSettings.app.objects[key])) {
+        localSettings.app.objects[key] = cloneJson(remoteSettings.app.objects[key]);
+        changed = true;
+      }
+    });
+    if (changed) {
+      writeLocalStorageSettings(localSettings);
     }
   }
 
   async function load() {
+    localSettings = ensureShape(readLocalStorageSettings());
     try {
-      settings = await fetchJson("/api/settings", { cache: "no-store" });
+      remoteSettings = ensureShape(await fetchJson("/api/settings", { cache: "no-store" }));
     } catch (_) {
-      settings = {};
+      remoteSettings = createEmptySettings();
     }
-    ensureShape();
+    migrateLegacyRemoteSettingsToLocal();
+    mergeSettings();
     return cloneJson(settings);
   }
 
   function read() {
-    ensureShape();
+    mergeSettings();
     return cloneJson(settings);
   }
 
   function getViewportSession(viewportKey, fallback) {
-    ensureShape();
+    mergeSettings();
     const stored = settings.app.viewportSessions[viewportKey];
     if (!isObject(stored)) {
       return cloneJson(fallback);
@@ -59,12 +139,14 @@ export function createSettingsStore() {
   }
 
   function setViewportSession(viewportKey, snapshot) {
-    ensureShape();
-    settings.app.viewportSessions[viewportKey] = cloneJson(snapshot);
+    ensureShape(localSettings);
+    localSettings.app.viewportSessions[viewportKey] = cloneJson(snapshot);
+    dirtyLocal = true;
+    mergeSettings();
   }
 
   function getObjectSnapshot(objectKey, fallback) {
-    ensureShape();
+    mergeSettings();
     const stored = settings.app.objects[objectKey];
     if (!isObject(stored)) {
       return cloneJson(fallback);
@@ -76,31 +158,46 @@ export function createSettingsStore() {
   }
 
   function setObjectSnapshot(objectKey, snapshot) {
-    ensureShape();
-    settings.app.objects[objectKey] = cloneJson(snapshot);
+    if (objectKey === "labUi") {
+      ensureShape(remoteSettings);
+      remoteSettings.app.objects.labUi = cloneJson(snapshot);
+      dirtyRemote = true;
+    } else {
+      ensureShape(localSettings);
+      localSettings.app.objects[objectKey] = cloneJson(snapshot);
+      dirtyLocal = true;
+    }
+    mergeSettings();
   }
 
   function hasObjectSnapshot(objectKey) {
-    ensureShape();
+    mergeSettings();
     return isObject(settings.app.objects[objectKey]);
   }
 
   async function persistNow() {
-    ensureShape();
-    const payload = cloneJson(settings);
     pendingPersist = pendingPersist.then(async () => {
-      try {
-        settings = await fetchJson("/api/settings", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-      } catch (_) {
-        // Keep local in-memory settings if persistence fails.
+      if (dirtyLocal) {
+        if (writeLocalStorageSettings(localSettings)) {
+          dirtyLocal = false;
+        }
       }
-      ensureShape();
+      if (dirtyRemote) {
+        const payload = cloneJson(remoteSettings);
+        try {
+          remoteSettings = ensureShape(await fetchJson("/api/settings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          }));
+          dirtyRemote = false;
+        } catch (_) {
+          // Keep in-memory remote settings and retry on next persist.
+        }
+      }
+      mergeSettings();
     });
     await pendingPersist;
   }

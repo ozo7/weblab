@@ -1,3 +1,20 @@
+## Latest Updates (Version 1.3: Theming Completeness + In-Model Scrollbar Preview)
+
+1. Enabled real multi-user-safe preference persistence split in `core/settings-store.js`:
+   - user/session preferences now stored in browser `localStorage` (`webviewer:user-settings:v1`)
+   - lab-only values (`selectedProfileKey`, `selectedObjectKey`) remain server-file backed via `/api/settings`.
+2. Activated color-scheme switching across all viewports:
+   - `360`, `720`, `1080` now allow selecting all schemes (not minty-only).
+3. Expanded theming coverage so schemes affect previously unthemed areas:
+   - body/outer backgrounds, nav-pane gradients, floating buttons, headings, links, scrollbars, and lab frame/workspace surfaces.
+4. Replaced static configuration illustration with a live mini-model preview in config content area.
+5. Added explicit scrollbar preview inside the mini-model navigation pane (lower section) for `720` and `1080`, with forced visible vertical scrollbar.
+6. Updated config preview and viewport CSS contracts:
+   - `core/configuration-preview-builder.js`
+   - `styles/colorschemes/minty-premature.css`
+   - `styles/viewport-720.css`
+   - `styles/viewport-1080.css`.
+
 ## Recent Session Updates
 
 ### Latest Updates (Version 1.2: Responsive Switching + Config Resolution Controls)
