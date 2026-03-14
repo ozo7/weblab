@@ -463,8 +463,8 @@ export function createViewport360(options) {
       mini.style.borderColor = asPreviewColor(preview.border, "#B8CABC");
       mini.innerHTML = [
         '<div class="wv360-config-mini-top">',
-        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ";border-color:" + asPreviewColor(preview.border, "#B8CABC") + ";">menus / sitemap</span>',
-        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ";border-color:" + asPreviewColor(preview.border, "#B8CABC") + ";">☰</span>',
+        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ';border-color:' + asPreviewColor(preview.border, "#B8CABC") + ';">menus / sitemap</span>',
+        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ';border-color:' + asPreviewColor(preview.border, "#B8CABC") + ';">☰</span>',
         "</div>",
         '<div class="wv360-config-mini-title">Theme Illustration: ' + previewScheme.label + "</div>"
       ].join("\n");
