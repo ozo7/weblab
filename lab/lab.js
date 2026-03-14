@@ -151,6 +151,7 @@ function createViewportInstance(profile) {
       tagPool: sharedRuntime.getTagPool(),
       pagingQueue: sharedRuntime.getPagingQueue(),
       configuration: sharedRuntime.getConfiguration(),
+      articleMap: sharedRuntime.runtimeState.articleMap,
       homeArticleId: sharedRuntime.getDefaultArticleId()
     });
   }

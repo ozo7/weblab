@@ -1,14 +1,7 @@
 import { createColorPicker } from "../core/color-picker.js";
 import { getReadableTextColor } from "../core/color-schemes.js";
 import { createButton, getDepthClass } from "../core/nav-rail-utils.js";
-
-function getQueueAround(queueIds, currentId) {
-  const index = queueIds.indexOf(currentId);
-  return {
-    previousId: index > 0 ? queueIds[index - 1] : null,
-    nextId: index >= 0 && index < queueIds.length - 1 ? queueIds[index + 1] : null
-  };
-}
+import { ensureSelectedArticleOrFallback } from "../core/article-fallback.js";
 
 function asPreviewColor(value, fallback) {
   return typeof value === "string" && value ? value : fallback;
@@ -41,7 +34,7 @@ export function createViewport360(options) {
   let sidePaneMode = session.sidePaneMode === "open" || session.sidePaneMode === "partial" || session.sidePaneMode === "closed"
     ? session.sidePaneMode
     : "closed";
-  let activeScreen = session.activeScreen === "tags" || session.activeScreen === "history" || session.activeScreen === "configuration"
+  let activeScreen = session.activeScreen === "tags" || session.activeScreen === "history" || session.activeScreen === "configuration" || session.activeScreen === "paging"
     ? session.activeScreen
     : null;
   let configPreviewKey = configuration && typeof configuration.readState === "function"
@@ -51,21 +44,17 @@ export function createViewport360(options) {
   host.innerHTML = [
     '<section class="wv360-shell cs-shell" data-nav="closed" data-side-pane="closed">',
     '  <section class="wv360-nav-pane">',
-    '    <div class="wv360-overlay-stack">',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="open-tags">tags</button>',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="open-history">history</button>',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn" data-action="open-configuration">configuration</button>',
+    '    <div class="wv360-overlay-stack cs-menu-list">',
+    '      <button type="button" class="wv360-overlay-action cs-menu-item" data-action="open-home">home</button>',
+    '      <button type="button" class="wv360-overlay-action cs-menu-item" data-action="open-tags">tags</button>',
+    '      <button type="button" class="wv360-overlay-action cs-menu-item" data-action="open-history">history</button>',
+    '      <button type="button" class="wv360-overlay-action cs-menu-item" data-action="open-configuration">configuration</button>',
     "    </div>",
     "  </section>",
     '  <section class="wv360-content-pane">',
     '    <section class="wv360-article-view cs-content-host">',
     '      <main id="pane2main"></main>',
     "    </section>",
-    '    <div class="wv360-quick-nav">',
-    '      <button type="button" class="wv360-pill cs-floating-btn" data-action="home" aria-label="Home">⌂</button>',
-    '      <button type="button" class="wv360-pill cs-floating-btn" data-action="prev" aria-label="Previous"><</button>',
-    '      <button type="button" class="wv360-pill cs-floating-btn" data-action="next" aria-label="Next">></button>',
-    "    </div>",
     '    <button type="button" class="wv360-side-toggle cs-floating-btn" data-action="toggle-side-pane" aria-label="Open side pane"></button>',
     '    <aside class="wv360-side-pane cs-rail" aria-label="Side pane">',
     '      <div class="wv360-side-pane-scroll" data-role="side-menus"></div>',
@@ -75,7 +64,7 @@ export function createViewport360(options) {
     '  <section class="wv360-screen-layer" hidden aria-hidden="true">',
     '    <header class="wv360-screen-head cs-panel-head">',
     '      <h2 class="wv360-screen-title cs-section-head"></h2>',
-    '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-close-half" data-action="close-screen">></button>',
+    '      <button type="button" class="wv360-overlay-action cs-action-btn wv360-close-half" data-action="close-screen">⤫</button>',
     "    </header>",
     '    <div class="wv360-screen-body"></div>',
     "  </section>",
@@ -91,11 +80,10 @@ export function createViewport360(options) {
   const sidePane = host.querySelector(".wv360-side-pane");
   const sideToggleButton = host.querySelector('[data-action="toggle-side-pane"]');
   const sideMenus = host.querySelector('[data-role="side-menus"]');
+  const homeOpenButton = host.querySelector('[data-action="open-home"]');
   const tagsOpenButton = host.querySelector('[data-action="open-tags"]');
   const historyOpenButton = host.querySelector('[data-action="open-history"]');
   const configurationOpenButton = host.querySelector('[data-action="open-configuration"]');
-  const prevButton = host.querySelector('[data-action="prev"]');
-  const nextButton = host.querySelector('[data-action="next"]');
 
   function persistSession() {
     settingsStore.setViewportSession("360", {
@@ -127,13 +115,31 @@ export function createViewport360(options) {
   }
 
   function setActiveScreen(nextScreen) {
-    activeScreen = nextScreen === "tags" || nextScreen === "history" || nextScreen === "configuration" ? nextScreen : null;
-    const navArea = activeScreen || "menus";
+    activeScreen = nextScreen === "tags" || nextScreen === "history" || nextScreen === "configuration" || nextScreen === "paging"
+      ? nextScreen
+      : null;
+    const navArea = activeScreen === "paging" ? "tags" : (activeScreen || "menus");
     if (typeof navigation.setNavArea === "function") {
       navigation.setNavArea(navArea);
     }
     renderAll();
     persistSession();
+  }
+
+  function ensurePagingModeSelection() {
+    if (activeScreen !== "paging") {
+      return;
+    }
+    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
+      ? pagingQueue.getQueue()
+      : [];
+    if (!queue.length) {
+      return;
+    }
+    const selectedId = navigation.readState().selectedArticleId;
+    if (!selectedId || !queue.includes(selectedId)) {
+      navigation.openArticleById(queue[0]);
+    }
   }
 
   function openArticle(articleId, options) {
@@ -256,16 +262,6 @@ export function createViewport360(options) {
     });
   }
 
-  function renderQuickNav() {
-    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
-      ? pagingQueue.getQueue()
-      : [];
-    const runtime = navigation.readState();
-    const around = getQueueAround(queue, runtime.selectedArticleId);
-    prevButton.disabled = !around.previousId;
-    nextButton.disabled = !around.nextId;
-  }
-
   function createTagsScreenContent() {
     const wrap = document.createElement("div");
     wrap.className = "wv360-fullscreen-panel";
@@ -282,8 +278,6 @@ export function createViewport360(options) {
       ? tagPool.getSelectedTagColors()
       : {};
     const selectedId = navigation.readState().selectedArticleId;
-    const currentIndex = queue.indexOf(selectedId);
-    const hasCurrentInQueue = currentIndex >= 0;
 
     const queueList = document.createElement("div");
     queueList.className = "wv360-history-list wv360-tags-queue-list";
@@ -326,26 +320,6 @@ export function createViewport360(options) {
 
     const controls = document.createElement("div");
     controls.className = "wv360-tags-controls";
-    const prevId = hasCurrentInQueue && currentIndex > 0 ? queue[currentIndex - 1] : null;
-    const nextId = hasCurrentInQueue
-      ? (currentIndex < queue.length - 1 ? queue[currentIndex + 1] : null)
-      : (queue.length ? queue[0] : null);
-
-    const prevQueueButton = createButton("<", "wv360-tags-nav-btn cs-mini-nav-btn", () => {
-      if (prevId) {
-        navigation.openArticleById(prevId);
-      }
-    });
-    prevQueueButton.disabled = !prevId;
-    controls.appendChild(prevQueueButton);
-
-    const nextQueueButton = createButton(">", "wv360-tags-nav-btn cs-mini-nav-btn", () => {
-      if (nextId) {
-        navigation.openArticleById(nextId);
-      }
-    });
-    nextQueueButton.disabled = !nextId;
-    controls.appendChild(nextQueueButton);
 
     const selectedCount = document.createElement("div");
     selectedCount.className = "wv360-tags-selected cs-section-head";
@@ -397,6 +371,86 @@ export function createViewport360(options) {
     tagWrap.appendChild(tagList);
     wrap.appendChild(tagWrap);
 
+    const paginationDivider = document.createElement("div");
+    paginationDivider.className = "wv360-tags-divider";
+    wrap.appendChild(paginationDivider);
+
+    const modeWrap = document.createElement("div");
+    modeWrap.className = "wv360-pagination-mode-wrap";
+    const pagesForPagination = tagPool && typeof tagPool.getPagesForSelectedTags === "function"
+      ? tagPool.getPagesForSelectedTags()
+      : queue.slice();
+    const enterPaginationButton = createButton(
+      "Enter Pagination Mode",
+      "wv360-pagination-mode-btn cs-action-btn",
+      () => {
+        const selectedPages = tagPool && typeof tagPool.getPagesForSelectedTags === "function"
+          ? tagPool.getPagesForSelectedTags()
+          : [];
+        if (pagingQueue && typeof pagingQueue.setPages === "function") {
+          pagingQueue.setPages(selectedPages, { allowReorder: false });
+        }
+        const committedQueue = pagingQueue && typeof pagingQueue.getQueue === "function"
+          ? pagingQueue.getQueue()
+          : selectedPages;
+        if (committedQueue.length > 0) {
+          setActiveScreen("paging");
+          navigation.openArticleById(committedQueue[0]);
+        }
+      }
+    );
+    enterPaginationButton.disabled = pagesForPagination.length === 0;
+    modeWrap.appendChild(enterPaginationButton);
+    wrap.appendChild(modeWrap);
+
+    return wrap;
+  }
+
+  function createPagingScreenContent() {
+    const wrap = document.createElement("div");
+    wrap.className = "wv360-fullscreen-panel wv360-paging-screen";
+
+    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
+      ? pagingQueue.getQueue()
+      : [];
+    const selectedId = navigation.readState().selectedArticleId;
+    const currentIndex = queue.indexOf(selectedId);
+    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    const total = queue.length;
+    const hasPrev = safeIndex > 0;
+    const hasNext = safeIndex >= 0 && safeIndex < total - 1;
+
+    const body = document.createElement("div");
+    body.className = "wv360-paging-body";
+    wrap.appendChild(body);
+
+    const controls = document.createElement("div");
+    controls.className = "wv360-paging-controls";
+
+    const prevButton = createButton("<", "wv360-paging-btn cs-mini-nav-btn", () => {
+      if (!hasPrev) {
+        return;
+      }
+      navigation.openArticleById(queue[safeIndex - 1]);
+    });
+    prevButton.disabled = !hasPrev;
+    controls.appendChild(prevButton);
+
+    const center = document.createElement("div");
+    center.className = "wv360-paging-indicator cs-section-head";
+    center.textContent = "Paging " + (total ? String(safeIndex + 1) : "0") + " / " + String(total);
+    controls.appendChild(center);
+
+    const nextButton = createButton(">", "wv360-paging-btn cs-mini-nav-btn", () => {
+      if (!hasNext) {
+        return;
+      }
+      navigation.openArticleById(queue[safeIndex + 1]);
+    });
+    nextButton.disabled = !hasNext;
+    controls.appendChild(nextButton);
+
+    wrap.appendChild(controls);
     return wrap;
   }
 
@@ -426,7 +480,10 @@ export function createViewport360(options) {
       const item = createButton(
         String(index + 1) + ". " + articleId,
         "wv360-history-item cs-list-btn",
-        () => navigation.openArticleById(articleId)
+        () => {
+          navigation.openArticleById(articleId);
+          closeScreen();
+        }
       );
       list.appendChild(item);
     });
@@ -443,14 +500,73 @@ export function createViewport360(options) {
     return schemes.find((scheme) => scheme && scheme.key === key) || schemes[0] || null;
   }
 
+  function applyPreviewToConfigurationMini(mini, previewScheme) {
+    if (!mini || !previewScheme || !previewScheme.preview) {
+      return;
+    }
+    const preview = previewScheme.preview;
+    const interactiveText = getReadableTextColor(asPreviewColor(preview.interactive, "#E5F1E8"));
+    const accentText = getReadableTextColor(asPreviewColor(preview.accent, "#1E88E5"));
+    mini.style.background = asPreviewColor(preview.surface, "#F8FCF8");
+    mini.style.color = asPreviewColor(preview.text, "#17301F");
+    mini.style.borderColor = asPreviewColor(preview.border, "#B8CABC");
+
+    const title = mini.querySelector(".wv360-config-mini-title");
+    if (title) {
+      title.textContent = "Theme Illustration: " + previewScheme.label;
+    }
+    const topButtons = Array.from(mini.querySelectorAll(".wv360-config-mini-btn"));
+    topButtons.forEach((button) => {
+      button.style.background = asPreviewColor(preview.interactive, "#E5F1E8");
+      button.style.color = interactiveText;
+      button.style.borderColor = asPreviewColor(preview.border, "#B8CABC");
+    });
+    Array.from(mini.querySelectorAll(".wv360-config-mini-category")).forEach((category) => {
+      category.style.borderColor = asPreviewColor(preview.border, "#B8CABC");
+    });
+    const navigationLine = mini.querySelector(".wv360-config-mini-line-nav");
+    if (navigationLine) {
+      navigationLine.style.background = asPreviewColor(preview.interactive, "#E5F1E8");
+      navigationLine.style.color = interactiveText;
+    }
+    const actionsLine = mini.querySelector(".wv360-config-mini-line-actions");
+    if (actionsLine) {
+      actionsLine.style.background = asPreviewColor(preview.accent, "#1E88E5");
+      actionsLine.style.color = accentText;
+    }
+    const contentLine = mini.querySelector(".wv360-config-mini-line-content");
+    if (contentLine) {
+      contentLine.style.background = asPreviewColor(preview.layer, "#FFFFFF");
+      contentLine.style.color = asPreviewColor(preview.text, "#17301F");
+    }
+  }
+
+  function refreshConfigurationMiniIfVisible() {
+    if (activeScreen !== "configuration") {
+      return;
+    }
+    const mini = screenBody.querySelector(".wv360-config-mini");
+    if (!mini) {
+      return;
+    }
+    const previewScheme = getConfigurationPreviewByKey(configPreviewKey);
+    applyPreviewToConfigurationMini(mini, previewScheme);
+    const state = configuration && typeof configuration.readState === "function" ? configuration.readState() : null;
+    const pastelScheme = state && Array.isArray(state.schemes)
+      ? state.schemes.find((scheme) => scheme && scheme.key === "pastel-dynamic")
+      : null;
+    const pastelButton = screenBody.querySelector(".wv360-config-pastel-scheme");
+    if (pastelButton && pastelScheme && pastelScheme.preview) {
+      const pastelPreview = pastelScheme.preview;
+      pastelButton.style.background = asPreviewColor(pastelPreview.interactive, "#E5F1E8");
+      pastelButton.style.color = getReadableTextColor(asPreviewColor(pastelPreview.interactive, "#E5F1E8"));
+      pastelButton.style.borderColor = asPreviewColor(pastelPreview.border, "#B8CABC");
+    }
+  }
+
   function createConfigurationScreenContent() {
     const wrap = document.createElement("div");
     wrap.className = "wv360-fullscreen-panel";
-
-    const sectionTitle = document.createElement("div");
-    sectionTitle.className = "wv360-history-head cs-section-head";
-    sectionTitle.textContent = "Configuration";
-    wrap.appendChild(sectionTitle);
 
     const previewScheme = getConfigurationPreviewByKey(configPreviewKey);
     const preview = previewScheme && previewScheme.preview ? previewScheme.preview : null;
@@ -458,21 +574,41 @@ export function createViewport360(options) {
       const mini = document.createElement("div");
       mini.className = "wv360-config-mini cs-preview-card";
       mini.style.maxWidth = "100%";
-      mini.style.background = asPreviewColor(preview.surface, "#F8FCF8");
-      mini.style.color = asPreviewColor(preview.text, "#17301F");
-      mini.style.borderColor = asPreviewColor(preview.border, "#B8CABC");
       mini.innerHTML = [
+        '<div class="wv360-config-mini-watermark">Illustration Demo</div>',
         '<div class="wv360-config-mini-top">',
-        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ';border-color:' + asPreviewColor(preview.border, "#B8CABC") + ';">menus / sitemap</span>',
-        '  <span class="cs-preview-btn" style="background:' + asPreviewColor(preview.interactive, "#E5F1E8") + ';border-color:' + asPreviewColor(preview.border, "#B8CABC") + ';">☰</span>',
+        '  <span class="cs-preview-btn wv360-config-mini-btn">menus / sitemap</span>',
+        '  <span class="cs-preview-btn wv360-config-mini-btn">☰</span>',
         "</div>",
-        '<div class="wv360-config-mini-title">Theme Illustration: ' + previewScheme.label + "</div>"
+        '<div class="wv360-config-mini-title">Theme Illustration: ' + previewScheme.label + "</div>",
+        '<div class="wv360-config-mini-categories">',
+        '  <div class="wv360-config-mini-category">',
+        '    <div class="wv360-config-mini-label">Navigation</div>',
+        '    <div class="wv360-config-mini-line wv360-config-mini-line-nav">Tree / menus</div>',
+        "  </div>",
+        '  <div class="wv360-config-mini-category">',
+        '    <div class="wv360-config-mini-label">Actions</div>',
+        '    <div class="wv360-config-mini-line wv360-config-mini-line-actions">Buttons / tags</div>',
+        "  </div>",
+        '  <div class="wv360-config-mini-category">',
+        '    <div class="wv360-config-mini-label">Content</div>',
+        '    <div class="wv360-config-mini-line wv360-config-mini-line-content">Cards / panels</div>',
+        "  </div>",
+        "</div>"
       ].join("\n");
+      applyPreviewToConfigurationMini(mini, previewScheme);
       wrap.appendChild(mini);
     }
 
     const state = configuration && typeof configuration.readState === "function" ? configuration.readState() : null;
+    const controlsWrap = document.createElement("div");
+    controlsWrap.className = "wv360-config-controls";
+    const schemes = state && Array.isArray(state.schemes) ? state.schemes : [];
+    const selectedKey = state && typeof state.selectedSchemeKey === "string" ? state.selectedSchemeKey : "";
+    const pastelScheme = schemes.find((scheme) => scheme && scheme.key === "pastel-dynamic") || null;
 
+    const pastelCluster = document.createElement("div");
+    pastelCluster.className = "wv360-config-pastel-cluster";
     const pastelRow = document.createElement("div");
     pastelRow.className = "wv360-config-pastel-row";
     const pastelLabel = document.createElement("label");
@@ -490,13 +626,30 @@ export function createViewport360(options) {
         }
       }
     });
-    wrap.appendChild(pastelRow);
+    pastelCluster.appendChild(pastelRow);
+
+    if (pastelScheme) {
+      const pastelPreview = pastelScheme.preview || {};
+      const pastelButton = document.createElement("button");
+      pastelButton.type = "button";
+      pastelButton.className = "wv360-config-scheme-btn wv360-config-pastel-scheme cs-scheme-btn" + (selectedKey === pastelScheme.key ? " active" : "");
+      pastelButton.textContent = pastelScheme.label;
+      pastelButton.style.background = asPreviewColor(pastelPreview.interactive, "#E5F1E8");
+      pastelButton.style.color = getReadableTextColor(asPreviewColor(pastelPreview.interactive, "#E5F1E8"));
+      pastelButton.style.borderColor = asPreviewColor(pastelPreview.border, "#B8CABC");
+      pastelButton.addEventListener("click", () => {
+        configPreviewKey = pastelScheme.key;
+        renderScreen();
+      });
+      pastelCluster.appendChild(pastelButton);
+    }
+    controlsWrap.appendChild(pastelCluster);
 
     const schemeList = document.createElement("div");
     schemeList.className = "wv360-config-scheme-list";
-    const schemes = state && Array.isArray(state.schemes) ? state.schemes : [];
-    const selectedKey = state && typeof state.selectedSchemeKey === "string" ? state.selectedSchemeKey : "";
-    schemes.forEach((scheme) => {
+    schemes
+      .filter((scheme) => scheme && scheme.key !== "pastel-dynamic")
+      .forEach((scheme) => {
       const previewModel = scheme && scheme.preview ? scheme.preview : {};
       const button = document.createElement("button");
       button.type = "button";
@@ -511,13 +664,15 @@ export function createViewport360(options) {
       });
       schemeList.appendChild(button);
     });
-    wrap.appendChild(schemeList);
+    controlsWrap.appendChild(schemeList);
+    wrap.appendChild(controlsWrap);
 
     return wrap;
   }
 
   function renderScreen() {
     screenBody.innerHTML = "";
+    shell.dataset.screen = activeScreen || "none";
     if (!activeScreen) {
       screenLayer.hidden = true;
       screenLayer.setAttribute("aria-hidden", "true");
@@ -542,17 +697,28 @@ export function createViewport360(options) {
     if (activeScreen === "configuration") {
       screenTitle.textContent = "Configuration";
       screenBody.appendChild(createConfigurationScreenContent());
+      return;
+    }
+
+    if (activeScreen === "paging") {
+      ensurePagingModeSelection();
+      screenTitle.textContent = "Paging Mode";
+      screenBody.appendChild(createPagingScreenContent());
     }
   }
 
   function renderAll() {
-    renderQuickNav();
     renderSideMenus();
     renderScreen();
   }
 
   function closeScreen() {
     setActiveScreen(null);
+    ensureSelectedArticleOrFallback({
+      navigation,
+      articleMap,
+      fallbackArticleId
+    });
   }
 
   const unsubscribeNavigation = navigation.subscribe((event) => {
@@ -569,20 +735,32 @@ export function createViewport360(options) {
     ? pagingQueue.subscribe(() => renderAll())
     : () => {};
   const unsubscribeConfiguration = configuration && typeof configuration.subscribe === "function"
-    ? configuration.subscribe(() => {
+    ? configuration.subscribe((event) => {
       if (activeScreen === "configuration") {
+        if (event && event.type === "set-pastel-base-color") {
+          refreshConfigurationMiniIfVisible();
+          return;
+        }
         renderScreen();
       }
     })
     : () => {};
 
-  host.querySelector('[data-action="open-nav"]').addEventListener("click", () => setNavOpen(true));
+  host.querySelector('[data-action="open-nav"]').addEventListener("click", () => setNavOpen(!navOpen));
   navPane.addEventListener("click", (event) => {
     if (event.target === navPane) {
       setNavOpen(false);
     }
   });
 
+  homeOpenButton.addEventListener("click", () => {
+    setNavOpen(false);
+    if (homeArticleId && articleMap.has(homeArticleId)) {
+      navigation.openArticleById(homeArticleId);
+      return;
+    }
+    navigation.openHome();
+  });
   tagsOpenButton.addEventListener("click", () => {
     setNavOpen(false);
     setActiveScreen("tags");
@@ -597,34 +775,6 @@ export function createViewport360(options) {
   });
 
   host.querySelector('[data-action="close-screen"]').addEventListener("click", closeScreen);
-
-  host.querySelector('[data-action="home"]').addEventListener("click", () => {
-    if (homeArticleId && articleMap.has(homeArticleId)) {
-      openArticle(homeArticleId);
-      return;
-    }
-    navigation.openHome();
-  });
-
-  prevButton.addEventListener("click", () => {
-    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
-      ? pagingQueue.getQueue()
-      : [];
-    const around = getQueueAround(queue, navigation.readState().selectedArticleId);
-    if (around.previousId) {
-      openArticle(around.previousId);
-    }
-  });
-
-  nextButton.addEventListener("click", () => {
-    const queue = pagingQueue && typeof pagingQueue.getQueue === "function"
-      ? pagingQueue.getQueue()
-      : [];
-    const around = getQueueAround(queue, navigation.readState().selectedArticleId);
-    if (around.nextId) {
-      openArticle(around.nextId);
-    }
-  });
 
   sideToggleButton.addEventListener("click", () => {
     if (sidePaneMode === "closed") {

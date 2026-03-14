@@ -1,6 +1,7 @@
 import { createColorPicker } from "../core/color-picker.js";
 import { getReadableTextColor } from "../core/color-schemes.js";
 import { createButton, getDepthClass } from "../core/nav-rail-utils.js";
+import { ensureSelectedArticleOrFallback } from "../core/article-fallback.js";
 
 export function createViewport1080(options) {
   const host = options.host;
@@ -10,6 +11,7 @@ export function createViewport1080(options) {
   const pagingQueue = options.pagingQueue || null;
   const configuration = options.configuration || null;
   const homeArticleId = options.homeArticleId || null;
+  const articleMap = options.articleMap instanceof Map ? options.articleMap : null;
 
   host.innerHTML = [
     '<div class="wv1080-stage">',
@@ -78,6 +80,13 @@ export function createViewport1080(options) {
       if (currentId && typeof navigation.openArticleById === "function") {
         navigation.openArticleById(currentId);
       }
+    }
+    if (next !== "configuration") {
+      ensureSelectedArticleOrFallback({
+        navigation,
+        articleMap,
+        fallbackArticleId: homeArticleId || null
+      });
     }
     setRailMenuOpen(false);
     render();

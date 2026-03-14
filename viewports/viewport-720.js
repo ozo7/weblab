@@ -1,6 +1,7 @@
 import { createColorPicker } from "../core/color-picker.js";
 import { getReadableTextColor } from "../core/color-schemes.js";
 import { createButton, getDepthClass } from "../core/nav-rail-utils.js";
+import { ensureSelectedArticleOrFallback } from "../core/article-fallback.js";
 
 export function createViewport720(options) {
   const host = options.host;
@@ -107,6 +108,13 @@ export function createViewport720(options) {
       if (currentId) {
         navigation.openArticleById(currentId);
       }
+    }
+    if (next !== "configuration") {
+      ensureSelectedArticleOrFallback({
+        navigation,
+        articleMap,
+        fallbackArticleId
+      });
     }
     setRailMenuOpen(false);
     render();
