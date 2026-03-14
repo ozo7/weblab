@@ -60,6 +60,7 @@ export function createViewport1080(options) {
   const railMenuList = host.querySelector(".wv1080-rail-menu-list");
   const railMenuItems = Array.from(host.querySelectorAll(".wv1080-rail-menu-item"));
   let underflowRafId = 0;
+  let configurationPanelMode = "overview";
   let fallbackRailMode = "menus";
   const railModeController = createNavAreaController({
     allowedModes: ["menus", "tags", "history", "configuration"],
@@ -102,6 +103,10 @@ export function createViewport1080(options) {
     const railMode = resolveRailMode(navState.navArea, fallbackRailMode);
     setMenuItemsActive(railMenuItems, railMode);
     if (previousMode === "configuration" && next !== "configuration") {
+      configurationPanelMode = "overview";
+      if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+        configuration.setColorSchemesVisible(false);
+      }
       const currentId = navigation.readState().selectedArticleId;
       if (currentId && typeof navigation.openArticleById === "function") {
         navigation.openArticleById(currentId);
@@ -242,22 +247,42 @@ export function createViewport1080(options) {
       railScroll.appendChild(createConfigurationPanel({
         createButton,
         state,
+        mode: configurationPanelMode,
         classNames: {
           wrap: "wv1080-config-panel",
           sectionTitle: "wv1080-history-head cs-section-head",
           toggle: "wv1080-config-toggle cs-action-btn",
+          actionsRow: "wv1080-config-actions",
           schemeList: "wv1080-config-scheme-list",
           schemeButton: "wv1080-config-scheme-btn cs-scheme-btn",
           pastelRow: "wv1080-config-pastel-row",
-          pastelLabel: "wv1080-config-pastel-label cs-section-head"
+          pastelLabel: "wv1080-config-pastel-label cs-section-head",
+          resolutionList: "wv1080-config-resolution-list",
+          resolutionButton: "wv1080-config-resolution-btn cs-scheme-btn"
         },
         isEnabled(scheme) {
           return scheme && scheme.key === "minty-premature";
         },
-        onToggleVisible() {
-          if (configuration && typeof configuration.toggleColorSchemesVisible === "function") {
-            configuration.toggleColorSchemesVisible();
+        onOpenColorSchemes() {
+          configurationPanelMode = "color-schemes";
+          if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+            configuration.setColorSchemesVisible(true);
           }
+          render();
+        },
+        onOpenScreenResolutions() {
+          configurationPanelMode = "screen-resolutions";
+          if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+            configuration.setColorSchemesVisible(false);
+          }
+          render();
+        },
+        onBack() {
+          configurationPanelMode = "overview";
+          if (configuration && typeof configuration.setColorSchemesVisible === "function") {
+            configuration.setColorSchemesVisible(false);
+          }
+          render();
         },
         onSelectScheme(scheme) {
           if (!scheme || scheme.key !== "minty-premature") {
@@ -270,6 +295,11 @@ export function createViewport1080(options) {
         onPastelChange(nextHex) {
           if (configuration && typeof configuration.setPastelBaseColor === "function") {
             configuration.setPastelBaseColor(nextHex);
+          }
+        },
+        onSetViewportMode(mode) {
+          if (configuration && typeof configuration.setViewportMode === "function") {
+            configuration.setViewportMode(mode);
           }
         }
       }));

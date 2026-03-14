@@ -7,6 +7,7 @@ import {
 
 const ACTIVE_SCHEME_KEYS = new Set(["minty-premature"]);
 const FALLBACK_SCHEME_KEY = "minty-premature";
+const VIEWPORT_MODES = new Set(["auto", "static-360", "static-720", "static-1080"]);
 
 export function createConfigurationObject(options) {
   const subscribers = new Set();
@@ -17,7 +18,8 @@ export function createConfigurationObject(options) {
   const state = {
     colorSchemesVisible: false,
     selectedSchemeKey: defaultSchemeKey,
-    pastelBaseColor: normalizePastelBaseColor(options && options.pastelBaseColor, "#B76DC9")
+    pastelBaseColor: normalizePastelBaseColor(options && options.pastelBaseColor, "#B76DC9"),
+    viewportMode: VIEWPORT_MODES.has(options && options.viewportMode) ? options.viewportMode : "auto"
   };
 
   function publish(event) {
@@ -45,6 +47,8 @@ export function createConfigurationObject(options) {
       colorSchemesVisible: state.colorSchemesVisible,
       selectedSchemeKey: state.selectedSchemeKey,
       pastelBaseColor: state.pastelBaseColor,
+      viewportMode: state.viewportMode,
+      viewportModes: ["auto", "static-360", "static-720", "static-1080"],
       schemes: getSchemeDefinitions(),
       selectedSchemePreview: selected ? selected.preview : null,
       selectedSchemeLabel: selected ? selected.label : ""
@@ -87,11 +91,22 @@ export function createConfigurationObject(options) {
     return normalized;
   }
 
+  function setViewportMode(mode) {
+    const next = typeof mode === "string" && VIEWPORT_MODES.has(mode) ? mode : "auto";
+    if (state.viewportMode === next) {
+      return next;
+    }
+    state.viewportMode = next;
+    publish({ type: "set-viewport-mode", mode: next });
+    return next;
+  }
+
   function createSnapshot() {
     return {
       colorSchemesVisible: state.colorSchemesVisible,
       selectedSchemeKey: state.selectedSchemeKey,
-      pastelBaseColor: state.pastelBaseColor
+      pastelBaseColor: state.pastelBaseColor,
+      viewportMode: state.viewportMode
     };
   }
 
@@ -110,6 +125,9 @@ export function createConfigurationObject(options) {
       state.selectedSchemeKey = FALLBACK_SCHEME_KEY;
     }
     state.pastelBaseColor = normalizePastelBaseColor(snapshot.pastelBaseColor, state.pastelBaseColor);
+    state.viewportMode = typeof snapshot.viewportMode === "string" && VIEWPORT_MODES.has(snapshot.viewportMode)
+      ? snapshot.viewportMode
+      : "auto";
     publish({ type: "load-snapshot" });
   }
 
@@ -123,6 +141,7 @@ export function createConfigurationObject(options) {
     getSelectedScheme,
     setSelectedScheme,
     setPastelBaseColor,
+    setViewportMode,
     setColorSchemesVisible,
     toggleColorSchemesVisible,
     createSnapshot,

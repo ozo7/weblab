@@ -181,6 +181,11 @@
   gap: 8px;
 }
 
+.wv720-config-actions {
+  display: grid;
+  gap: 6px;
+}
+
 .wv720-history-head,
 .wv720-tagpool-head {
   font: 700 0.86rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
@@ -218,6 +223,20 @@
 
 .wv720-config-pastel-label {
   font: 700 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv720-config-resolution-list {
+  display: grid;
+  gap: 6px;
+}
+
+.wv720-config-resolution-btn {
+  width: 100%;
+  min-height: 34px;
+  text-align: left;
+  padding: 6px 10px;
+  font: 700 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
 }
 
 .wv720-config-preview-pane {

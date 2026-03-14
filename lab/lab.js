@@ -37,7 +37,11 @@ const runtime = {
   objectStateTimer: null,
   unbindObjectSubscriptions: [],
   objectTracking: {},
-  objectsListOpen: false
+  objectsListOpen: false,
+  currentViewportMode: "auto",
+  viewportApplyQueue: Promise.resolve(),
+  resizeHandler: null,
+  resizeSettleTimer: null
 };
 
 const sharedRuntime = createSharedRuntimeSession({
@@ -115,11 +119,16 @@ async function ensureSharedRuntime() {
   }
   if (!runtime.unbindConfigurationStyle && configuration && typeof configuration.subscribe === "function") {
     runtime.unbindConfigurationStyle = configuration.subscribe((event) => {
-      if (!event || (event.type !== "set-selected-scheme" && event.type !== "load-snapshot")) {
+      if (!event) {
         return;
       }
-      const state = configuration.readState();
-      ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey).catch(() => {});
+      if (event.type === "set-selected-scheme" || event.type === "load-snapshot") {
+        const state = configuration.readState();
+        ensureColorSchemeStyleLoaded(runtime, state.selectedSchemeKey).catch(() => {});
+      }
+      if (event.type === "set-viewport-mode" || event.type === "load-snapshot") {
+        queueApplyViewportMode();
+      }
     });
   }
 }
@@ -184,6 +193,12 @@ function createViewportInstance(profile) {
 }
 
 async function activateProfile(profileKey) {
+  if (sharedRuntime.runtimeState.activeViewport === profileKey && runtime.activeViewportInstance) {
+    Array.from(dom.buttons.querySelectorAll("button[data-profile]"))
+      .forEach((button) => button.classList.toggle("active", button.getAttribute("data-profile") === profileKey));
+    return;
+  }
+
   const profile = runtime.profiles[profileKey];
   if (!profile) {
     return;
@@ -218,6 +233,95 @@ async function activateProfile(profileKey) {
 
   sharedRuntime.runtimeState.activeViewport = profileKey;
   persistLabUiState();
+}
+
+function getFallbackProfileKey() {
+  if (runtime.profiles["1080"]) {
+    return "1080";
+  }
+  if (runtime.profiles["720"]) {
+    return "720";
+  }
+  if (runtime.profiles["360"]) {
+    return "360";
+  }
+  const keys = Object.keys(runtime.profiles || {});
+  return keys.length ? keys[0] : null;
+}
+
+function resolveProfileKeyForAutoMode() {
+  const keys = Object.keys(runtime.profiles || {});
+  if (!keys.length) {
+    return null;
+  }
+  const availableWidth = Math.max(
+    0,
+    dom.frame && dom.frame.clientWidth ? dom.frame.clientWidth : window.innerWidth
+  );
+  const ordered = keys
+    .map((key) => runtime.profiles[key])
+    .filter((profile) => profile && typeof profile.width === "number")
+    .sort((a, b) => a.width - b.width);
+  if (!ordered.length) {
+    return keys[0];
+  }
+  let selected = ordered[0].key;
+  ordered.forEach((profile) => {
+    if (availableWidth >= profile.width) {
+      selected = profile.key;
+    }
+  });
+  return selected;
+}
+
+function resolveProfileKeyFromViewportMode(mode) {
+  if (mode === "static-360" && runtime.profiles["360"]) {
+    return "360";
+  }
+  if (mode === "static-720" && runtime.profiles["720"]) {
+    return "720";
+  }
+  if (mode === "static-1080" && runtime.profiles["1080"]) {
+    return "1080";
+  }
+  if (mode === "auto") {
+    return resolveProfileKeyForAutoMode();
+  }
+  return getFallbackProfileKey();
+}
+
+function readViewportMode() {
+  const configuration = sharedRuntime.getConfiguration();
+  if (!configuration || typeof configuration.readState !== "function") {
+    return "auto";
+  }
+  const state = configuration.readState();
+  return state && typeof state.viewportMode === "string" ? state.viewportMode : "auto";
+}
+
+function queueApplyViewportMode() {
+  runtime.viewportApplyQueue = runtime.viewportApplyQueue
+    .then(async () => {
+      const nextMode = readViewportMode();
+      runtime.currentViewportMode = nextMode;
+      const profileKey = resolveProfileKeyFromViewportMode(nextMode);
+      if (profileKey) {
+        await activateProfile(profileKey);
+      }
+    })
+    .catch(() => {});
+}
+
+function scheduleSettledViewportApply() {
+  if (runtime.resizeSettleTimer) {
+    window.clearTimeout(runtime.resizeSettleTimer);
+  }
+  runtime.resizeSettleTimer = window.setTimeout(() => {
+    runtime.resizeSettleTimer = null;
+    window.requestAnimationFrame(() => {
+      queueApplyViewportMode();
+    });
+  }, 140);
 }
 
 function buildFullTreeFromWebsite(topLevel, selectedArticleIDs, expandedNodeIds) {
@@ -586,7 +690,18 @@ function renderControls(defaultViewport) {
     button.setAttribute("data-profile", profileKey);
     button.addEventListener("click", () => {
       setObjectViewOpen(false);
-      activateProfile(profileKey);
+      const configuration = sharedRuntime.getConfiguration();
+      if (!configuration || typeof configuration.setViewportMode !== "function") {
+        activateProfile(profileKey);
+        return;
+      }
+      if (profileKey === "1080") {
+        configuration.setViewportMode("static-1080");
+      } else if (profileKey === "720") {
+        configuration.setViewportMode("static-720");
+      } else {
+        configuration.setViewportMode("static-360");
+      }
     });
     dom.buttons.appendChild(button);
   });
@@ -603,6 +718,7 @@ function renderControls(defaultViewport) {
 async function start() {
   const profileConfig = await loadProfiles();
   runtime.profiles = profileConfig.profiles || {};
+  await ensureSharedRuntime();
   await sharedRuntime.getSettingsStore().load();
   const defaultViewport = profileConfig.defaultViewport || "1080";
   const labUi = sharedRuntime.getSettingsStore().getObjectSnapshot("labUi", {
@@ -614,6 +730,16 @@ async function start() {
     : defaultViewport;
   runtime.selectedObjectKey = normalizeObjectKey(labUi.selectedObjectKey);
   renderControls(selectedProfileKey);
+  queueApplyViewportMode();
+  if (!runtime.resizeHandler) {
+    runtime.resizeHandler = () => {
+      if (runtime.currentViewportMode === "auto") {
+        queueApplyViewportMode();
+        scheduleSettledViewportApply();
+      }
+    };
+    window.addEventListener("resize", runtime.resizeHandler);
+  }
 }
 
 start().catch((error) => {

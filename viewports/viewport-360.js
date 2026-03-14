@@ -495,17 +495,22 @@ export function createViewport360(options) {
     if (mode === "screen-resolutions") {
       const resolutions = document.createElement("div");
       resolutions.className = "wv360-config-resolution-list";
+      const currentViewportMode = state && typeof state.viewportMode === "string" ? state.viewportMode : "auto";
       [
-        "Responsive 360-720-1080+",
-        "Static 360",
-        "Static 720",
-        "Static 1080"
-      ].forEach((label) => {
+        { label: "Responsive 360-720-1080+", mode: "auto" },
+        { label: "Static 360", mode: "static-360" },
+        { label: "Static 720", mode: "static-720" },
+        { label: "Static 1080", mode: "static-1080" }
+      ].forEach((entry) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "wv360-config-resolution-btn cs-scheme-btn";
-        button.textContent = label;
-        button.disabled = true;
+        button.className = "wv360-config-resolution-btn cs-scheme-btn" + (currentViewportMode === entry.mode ? " active" : "");
+        button.textContent = entry.label;
+        button.addEventListener("click", () => {
+          if (configuration && typeof configuration.setViewportMode === "function") {
+            configuration.setViewportMode(entry.mode);
+          }
+        });
         resolutions.appendChild(button);
       });
       wrap.appendChild(resolutions);

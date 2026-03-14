@@ -1,5 +1,24 @@
 ## Recent Session Updates
 
+### Latest Updates (Version 1.2: Responsive Switching + Config Resolution Controls)
+
+1. Added persisted viewport mode state to `Configuration` object:
+   - `viewportMode`: `auto`, `static-360`, `static-720`, `static-1080`.
+2. Wired viewport mode switching in both deployment app and lab runtime:
+   - `app/app.js`
+   - `lab/lab.js`
+   - `auto` now selects profile from available width; static modes force profile directly.
+3. Extended 360 Configuration screen `Screen Resolutions` buttons to be active and apply real mode switches with active highlighting.
+4. Extended 720 and 1080 Configuration nav areas to match 360 flow:
+   - overview: `Color Schemes` + `Screen Resolutions`
+   - detail screens: `Back` button
+   - resolution list with active state and click-to-switch behavior.
+5. Updated shared configuration panel contract to support multi-mode rendering:
+   - `core/navarea-configuration-panel.js`.
+6. Centering behavior aligned for extra-wide layouts so 1080 viewport remains centered in app/lab host context.
+7. Added conservative resize-settle reapply path (debounced + animation-frame) in app/lab to avoid first-switch lag during device emulation downsizing.
+8. Completed syntax checks for touched runtime/viewports/core modules.
+
 ### Latest Updates (Architect-Led Core Extraction Audit Chunks)
 
 1. Added audit planning docs:

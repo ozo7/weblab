@@ -1,7 +1,7 @@
 #labViewportHost,
 #appViewportHost {
-  margin-left: 0;
-  margin-right: 0;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .wv1080-stage,
@@ -136,6 +136,11 @@
   gap: 8px;
 }
 
+.wv1080-config-actions {
+  display: grid;
+  gap: 6px;
+}
+
 .wv1080-config-toggle {
   width: 100%;
   min-height: 34px;
@@ -168,6 +173,20 @@
 
 .wv1080-config-pastel-label {
   font: 700 0.78rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.wv1080-config-resolution-list {
+  display: grid;
+  gap: 6px;
+}
+
+.wv1080-config-resolution-btn {
+  width: 100%;
+  min-height: 34px;
+  text-align: left;
+  padding: 6px 10px;
+  font: 700 0.82rem/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  cursor: pointer;
 }
 
 .wv1080-config-preview-pane {
